@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Virtual Environments
+venv/
+env/
+.env/
+
+# Data files
+*.csv
+*.npy
+*.npz
+*.pt
+*.pth
+
+# Large model binaries
+*.h5
+*.model
+
+# Windows thumbnails
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Specific version/temp file found in root
+12.0.1
