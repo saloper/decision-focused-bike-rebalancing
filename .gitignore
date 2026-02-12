@@ -18,6 +18,7 @@ env/
 *.npz
 *.pt
 *.pth
+*.pptx
 
 # Large model binaries
 *.h5
