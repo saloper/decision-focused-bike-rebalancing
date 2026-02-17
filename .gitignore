@@ -13,7 +13,6 @@ env/
 .env/
 
 # Data files
-*.csv
 *.npy
 *.npz
 *.pt
