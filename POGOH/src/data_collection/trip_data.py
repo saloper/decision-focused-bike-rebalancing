@@ -3,6 +3,7 @@ import requests
 import sys
 from ckanapi import RemoteCKAN
 from io import BytesIO
+from pathlib import Path
 
 #--------------------------------------------------------------------------------------
 #Helper Functions
@@ -91,6 +92,9 @@ if __name__ == '__main__':
     #Calculate net demand
     flow = calc_net_demand(df)
     #Write data to file
-    filename = 'pogoh_trip_data.csv'
-    flow.to_csv(filename, header=True, index=False)
-    print(f"\nSuccess! wrote data to {filename}")
+    current_dir = Path(__file__).parent
+    root = current_dir.parent.parent
+    data_dir = root / "data" / "raw"
+    file_path = data_dir / "pogoh_trip_data.csv"
+    flow.to_csv(file_path, header=True, index=False)
+    print(f"\nSuccess! wrote data to {file_path}")
