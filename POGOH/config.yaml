@@ -1,0 +1,16 @@
+project:
+  name: "POGOH Rebalancing"
+  ramdom_seed: 42
+
+data_collection:
+  months_back: 24 #How many historical months of data to pull
+
+features:
+  train_months: 12 #Amount of data total months_back to train with
+  test_months: 12 #Amount of data total months_back to test with
+
+models:
+  hidden_layers: [128,128]
+  loss_type: "mse"
+  batch_size: 32
+  learning_rate: 0.001 
