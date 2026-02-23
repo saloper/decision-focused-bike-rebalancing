@@ -22,3 +22,17 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
         total_loss += loss.item()
             
     return total_loss / len(dataloader)
+
+def evaluate(model, dataloader, criterion, device):
+    model.train()
+    total_loss = 0.0
+
+    with torch.no_grad():  
+        for batch_X, batch_y in dataloader:
+
+            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+            predictions = model(batch_X)
+            loss = criterion(predictions, batch_y)
+            total_loss += loss.item()
+            
+    return total_loss / len(dataloader)
