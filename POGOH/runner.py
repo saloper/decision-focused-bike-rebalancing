@@ -20,6 +20,7 @@ def main(args=None):
 #--------------------------------------------------------------------------------------
 if __name__ == "__main__":
     config = load_config()
+    #Load seeds
     model = MLP(100,60, config['models']['hidden_layers'])
     print(model)
     main()

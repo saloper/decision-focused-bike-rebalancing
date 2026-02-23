@@ -6,11 +6,10 @@ data_collection:
   months_back: 24 #How many historical months of data to pull
 
 features:
-  train_months: 12 #Amount of data total months_back to train with
-  test_months: 12 #Amount of data total months_back to test with
+  test_start: '2025-02-01' #Date to split data between training and testing
 
 models:
-  hidden_layers: [128,128]
+  hidden_layers: []
   loss_type: "mse"
   batch_size: 32
-  learning_rate: 0.001 
+  learning_rate: 0.001
