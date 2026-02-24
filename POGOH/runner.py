@@ -6,6 +6,7 @@ from src.models.mlp import MLP
 from src.models.train import get_loss_func, train_one_epoch, evaluate
 from src.utils.data_utils import prepare_dataloaders
 from src.models.bike_rebalance import BikeRebalanceModel
+import numpy as np
 
 #--------------------------------------------------------------------------------------
 #Helper Functions
@@ -44,9 +45,13 @@ def main(config=None):
     #     test_loss = evaluate(model, test_loader, criterion, 'cpu')
     #     print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f}")
 
-    opt_model = BikeRebalanceModel(raw_dir / "pogoh_station_dist_miles.csv", 0.1 , 1)
-    opt_model.set_constraints([0] * 60, [10] * 60)
-    print(opt_model.solve())
+    opt_model = BikeRebalanceModel(raw_dir / "pogoh_station_dist_miles.csv", config['models']['distance_cost'] , config['models']['loss_demand_cost'])
+    opt_model.update_constraints([10] * 60, np.random.randint(0,20, 60))
+    objective, flow, loss_demand = opt_model.solve()
+    print(f'Objective:{objective}')
+    print(f'Total Flow:{np.sum(flow)}')
+    print(f'Total Loss Demand:{np.sum(loss_demand)}')
+
 
 #--------------------------------------------------------------------------------------
 #Main

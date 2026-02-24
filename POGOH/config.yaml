@@ -9,8 +9,12 @@ features:
   test_start: '2025-02-01' #Date to split data between training and testing
 
 models:
+  #Parameters for the predictive model
   hidden_layers: []
   loss_type: "mse"
   epochs: 100
   batch_size: 32
   learning_rate: 0.001
+  #Parameters for the optimization model
+  distance_cost: 0.1
+  loss_demand_cost: 1
