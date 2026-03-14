@@ -1,0 +1,21 @@
+#Meta data 
+experiment_name: "Baseline POGOH Rebalancing"
+
+paths:
+  raw_trips: "data/raw/pogoh_trips.parquet"
+  stations: "data/raw/pogoh_stations.parquet"
+  station_dist_miles: "data/raw/pogoh_station_dist_miles.parquet"
+  station_dist_min: "data/raw/pogoh_station_dist_min.parquet"
+  input: "data/processed/pogoh_input.parquet"
+
+data:
+  train_start_date: '2017-01-01' #Start and End dates are inclusive
+  train_end_date: '2023-12-31'
+  test_start_date: '2025-01-01'
+  test_end_date: '2025-12-31'
+  batch_size: 32
+
+training:
+  epochs: 50
+  learning_rate: 0.001
+  loss_function: "mse"

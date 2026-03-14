@@ -19,6 +19,34 @@ def add_temporal_encodings(df):
     df['cos_month'] = np.cos(2 * np.pi * month / 12)
     
     return df
+
+def calc_net_demand(data, freq='D'):
+    temp = data.copy()
+    #Filter out non-normal rides
+    temp = temp[temp['Closed Status'] == 'NORMAL']
+
+    #Calculate Net Demand
+    outflow = temp.groupby([
+        pd.Grouper(key='Start Date', freq=freq), 
+        'Start Station Id', 
+        'Start Station Name'
+    ]).size().rename('Outflow').to_frame()
+
+    inflow = temp.groupby([
+        pd.Grouper(key='End Date', freq=freq), 
+        'End Station Id', 
+        'End Station Name'
+    ]).size().rename('Inflow').to_frame()
+
+    outflow.index.names = ['Date', 'Station Id', 'Station Name']
+    inflow.index.names = ['Date', 'Station Id', 'Station Name']
+
+    flow = outflow.join(inflow, how='outer').fillna(0).reset_index()
+    flow['Netflow'] = flow['Inflow'] - flow['Outflow'] 
+
+    print(f"\nSuccess! Combined flow at {freq} frequency. Total rows: {len(flow)}")
+    return flow
+
 #--------------------------------------------------------------------------------------
 #Main
 #--------------------------------------------------------------------------------------

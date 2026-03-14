@@ -5,7 +5,7 @@ def get_loss_func(name, opt_model=None):
     if name == "mse":
         return nn.MSELoss()
     else:
-        raise ValueError(f"Unknown loss type in config: name")
+        raise ValueError(f"Unknown loss type in config: {name}")
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device):
     model.train()
@@ -24,7 +24,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
     return total_loss / len(dataloader)
 
 def evaluate(model, dataloader, criterion, device):
-    model.train()
+    model.eval()
     total_loss = 0.0
 
     with torch.no_grad():  

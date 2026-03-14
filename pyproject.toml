@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dfbr"
+name = "decision-focused-bike-rebalancing"
 version = "0.1.0"
 description = "POGOH Bike Rebalancing Predictive and Optimization Models"
 readme = "README.md"
@@ -13,9 +13,10 @@ dependencies = [
     "pyyaml",
     "numpy",
     "pandas",
+    "pyarrow",
     "requests",
     "ckanapi",
-    "gurobipy"
+    "gurobipy",
 ]
 
 [tool.setuptools.packages.find]
