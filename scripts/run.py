@@ -2,10 +2,10 @@
 import yaml
 from pathlib import Path
 from torch.optim import Adam
-from src.models.mlp import MLP
-from src.models.train import get_loss_func, train_one_epoch, evaluate
-from src.utils.data_utils import prepare_dataloaders
-from src.models.bike_rebalance import BikeRebalanceModel
+from dfbr.models.mlp import MLP
+from dfbr.training.train import get_loss_func, train_one_epoch, evaluate
+from dfbr.data.load import prepare_dataloaders
+from dfbr.models.bike_rebalance import BikeRebalanceModel
 import numpy as np
 
 #--------------------------------------------------------------------------------------
