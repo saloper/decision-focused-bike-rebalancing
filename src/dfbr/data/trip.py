@@ -53,20 +53,23 @@ def download_pogoh_trip_data(trip_file):
     trips = get_pogoh_trip_data(wprdc)
 
     #Clean up datatypes
-    trips['Start Date'] = pd.to_datetime(trips['Start Date'], errors='coerce')
-    trips['End Date'] = pd.to_datetime(trips['End Date'], errors='coerce')
+    trips['Start Date'] = pd.to_datetime(trips['Start Date'], errors='coerce').dt.tz_localize('America/New_York', ambiguous=True)
+    trips['End Date'] = pd.to_datetime(trips['End Date'], errors='coerce').dt.tz_localize('America/New_York', ambiguous=True)
 
-    categorical_cols = ['Start Station Name', 'End Station Name', 'Closed Status', 'User Type']
+    categorical_cols = ['Start Station Name', 'End Station Name', 'Closed Status', 'Rider Type']
     for col in categorical_cols:
         if col in trips.columns:
             trips[col] = trips[col].astype('category')
 
-    id_cols = ['Start Station Id', 'End Station Id', 'Bike Id']
+    id_cols = ['Start Station Id', 'End Station Id']
     for col in id_cols:
         if col in trips.columns:
             # Convert to string, replacing 'nan' with actual None/NaN
-            trips[col] = trips[col].astype(str).replace('nan', pd.NA)
-
+            trips[col] = pd.to_numeric(trips[col], errors='coerce').astype('Int64')
+    
+    #Drop missing ids
+    trips = trips.dropna(subset=id_cols)
+    
     #Sort data
     trips.sort_values(by='Start Date', inplace=True)
     trips.to_parquet(get_path(trip_file), index=False, engine='pyarrow')

@@ -1,63 +1,52 @@
-#Main Script to run experiments
-import yaml
-from pathlib import Path
-from torch.optim import Adam
+from dfbr.utils.files import get_config
+from dfbr.data.dataset import BikeDemandDataset
 from dfbr.models.mlp import MLP
-from dfbr.training.train import get_loss_func, train_one_epoch, evaluate
-from dfbr.data.load import prepare_dataloaders
 from dfbr.models.bike_rebalance import BikeRebalanceModel
-import numpy as np
+from dfbr.training.train import get_loss_func, train_one_epoch, evaluate
+from torch.utils.data import DataLoader
+from torch.optim import Adam
 
-#--------------------------------------------------------------------------------------
-#Helper Functions
-#--------------------------------------------------------------------------------------
+#Read config
+config = get_config("baseline.yaml")
 
-#Read the config file
-def load_config(file="config.yaml"):
-    with open(file, "r") as file:
-        return yaml.safe_load(file)
+#Create datasets
+train_ds = BikeDemandDataset(
+        file = config["paths"]["input"],
+        start_date = config["data"]["train_start_date"],
+        end_date = config["data"]["train_end_date"],
+        target_cols= [str(id) for id in range(1,61)],
+        input_scale_cols= ['mean_temp', 'precip', 'max_gust'],
+        input_no_scale_cols=['sin_day_of_week', 'cos_day_of_week', 'sin_month', 'cos_month']
+    )
 
-#Main program
-def main(config=None):
+training_stats = {'mean': train_ds.mean, 'std': train_ds.std}
 
-    #Get file paths
-    current_dir = Path(__file__).parent
-    processed_dir = current_dir / "data" / "processed"
-    raw_dir = current_dir / "data" / "raw"
-    
-    # #Create dataloaders
-    # input_size, output_size, train_loader, test_loader = prepare_dataloaders(
-    #     train_file_path = processed_dir / "train.csv",
-    #     test_file_path = processed_dir / "test.csv",
-    #     batch_size = config['models']['batch_size']
-    # )
+test_ds = BikeDemandDataset(
+        file = config["paths"]["input"],
+        start_date = config["data"]["test_start_date"],
+        end_date = config["data"]["test_end_date"],
+        target_cols= [str(id) for id in range(1,61)],
+        input_scale_cols= ['mean_temp', 'precip', 'max_gust'],
+        input_no_scale_cols=['sin_day_of_week', 'cos_day_of_week', 'sin_month', 'cos_month'],
+        is_train=False,
+        scaling_factor=training_stats
+    )
 
-    # #Create model
-    # model = MLP(input_size, output_size, config['models']['hidden_layers'])
+#Wrap Data Loaders
+train_dl = DataLoader(train_ds, batch_size=config["training"]["batch_size"], shuffle=False)
+test_dl = DataLoader(test_ds, batch_size=config["training"]["batch_size"], shuffle=False)
 
-    # #Create loss function and optimizer
-    # criterion = get_loss_func(config['models']['loss_type'])
-    # optimizer = Adam(model.parameters(), lr=config['models']['learning_rate'])
+#Create MLP
+input_size = len(train_ds[0][0])
+output_size = len(train_ds[0][1])
+pred_model = MLP(input_size, output_size, config["model"]["hidden_layers"])
 
-    # #Training loop
-    # for epoch in range(config['models']['epochs']):
-    #     train_loss = train_one_epoch(model, train_loader, optimizer, criterion, 'cpu')
-    #     test_loss = evaluate(model, test_loader, criterion, 'cpu')
-    #     print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f}")
+#Create loss function and optimizer
+criterion = get_loss_func(config["training"]["loss_function"])
+optimizer = Adam(pred_model.parameters(), lr=config["training"]["learning_rate"])
 
-    opt_model = BikeRebalanceModel(raw_dir / "pogoh_station_dist_miles.csv", config['models']['distance_cost'] , config['models']['loss_demand_cost'])
-    opt_model.update_constraints([10] * 60, np.random.randint(0,20, 60))
-    objective, flow, loss_demand = opt_model.solve()
-    print(f'Objective:{objective}')
-    print(f'Total Flow:{np.sum(flow)}')
-    print(f'Total Loss Demand:{np.sum(loss_demand)}')
-
-
-#--------------------------------------------------------------------------------------
-#Main
-#--------------------------------------------------------------------------------------
-if __name__ == "__main__":
-    config = load_config()
-    #TODOLoad seeds
-
-    main(config)
+#Training loop
+for epoch in range(config["training"]["epochs"]):
+    train_loss = train_one_epoch(pred_model, train_dl, optimizer, criterion, 'cpu')
+    test_loss = evaluate(pred_model, test_dl, criterion, 'cpu')
+    print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f}")

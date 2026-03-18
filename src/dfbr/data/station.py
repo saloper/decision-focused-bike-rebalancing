@@ -70,10 +70,11 @@ def download_pogoh_station_data(station_file, dist_miles_file, dist_min_file):
     #Connect to WPRDC
     wprdc = RemoteCKAN('https://data.wprdc.org')
 
-    #TODO convert data types to be safe
 
     #Get Station data
     stations = get_latest_pogoh_stations(wprdc)
+    stations['Id'] = pd.to_numeric(stations['Id'], errors='coerce').astype('Int64')
+    stations['Name'] = stations['Name'].astype('category')
     stations.to_parquet(get_path(station_file), index=False, engine='pyarrow')
 
     #Get driving distance data

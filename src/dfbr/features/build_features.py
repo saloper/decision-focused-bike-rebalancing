@@ -1,9 +1,35 @@
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import requests
+from dfbr.utils.files import get_config, get_path
+
 #--------------------------------------------------------------------------------------
 #Helper Functions
 #--------------------------------------------------------------------------------------
+def calc_net_demand(data, freq='D'):
+    temp = data.copy()
+
+    #Calculate Net Demand
+    outflow = temp.groupby([
+        pd.Grouper(key='Start Date', freq=freq), 
+        'Start Station Id', 
+    ],observed=False).size().rename('Outflow').to_frame()
+
+    inflow = temp.groupby([
+        pd.Grouper(key='End Date', freq=freq), 
+        'End Station Id', 
+    ], observed=False).size().rename('Inflow').to_frame()
+
+    outflow.index.names = ['Start Date', 'Station Id']
+    inflow.index.names = ['Start Date', 'Station Id',]
+
+    flow = outflow.join(inflow, how='outer').fillna(0).reset_index()
+    flow['Netflow'] = flow['Inflow'] - flow['Outflow'] 
+
+    print(f"\nSuccess! Combined flow at {freq} frequency. Total rows: {len(flow)}")
+
+    return flow
+
 def add_temporal_encodings(df):
     # Ensure index is datetime
     df.index = pd.to_datetime(df.index)
@@ -17,71 +43,80 @@ def add_temporal_encodings(df):
     month = df.index.month
     df['sin_month'] = np.sin(2 * np.pi * month / 12)
     df['cos_month'] = np.cos(2 * np.pi * month / 12)
-    
+
+    print(f"\nSuccess! Added temporal encodings.")
     return df
 
-def calc_net_demand(data, freq='D'):
-    temp = data.copy()
-    #Filter out non-normal rides
-    temp = temp[temp['Closed Status'] == 'NORMAL']
+def add_weather_forecast(df):
+    url = "https://previous-runs-api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": 40.4406,
+        "longitude": -79.9959,
+        "start_date": df.index.min().strftime('%Y-%m-%d'),
+        "end_date": df.index.max().strftime('%Y-%m-%d'),
+        "daily": [
+            "apparent_temperature_mean",
+            "precipitation_sum", 
+            "wind_gusts_10m_mean"
+            ],
+        "previous_day" : 1,
+        "timezone": 'America/New_York'
+    }
 
-    #Calculate Net Demand
-    outflow = temp.groupby([
-        pd.Grouper(key='Start Date', freq=freq), 
-        'Start Station Id', 
-        'Start Station Name'
-    ]).size().rename('Outflow').to_frame()
+    #Make request and get data
+    response = requests.get(url, params=params)
+    data = response.json()
 
-    inflow = temp.groupby([
-        pd.Grouper(key='End Date', freq=freq), 
-        'End Station Id', 
-        'End Station Name'
-    ]).size().rename('Inflow').to_frame()
+    
+    weather_df = pd.DataFrame(data['daily'])
+    weather_df['time'] = pd.to_datetime(weather_df['time']).dt.tz_localize('America/New_York', ambiguous=True)
+    weather_df.set_index('time', inplace=True)
+    weather_df.columns = ['mean_temp', 'precip', 'max_gust']
 
-    outflow.index.names = ['Date', 'Station Id', 'Station Name']
-    inflow.index.names = ['Date', 'Station Id', 'Station Name']
+    df = df.join(weather_df, how='inner')
+    print(f"\nSuccess! Added day-ahead weather forecasts.")
 
-    flow = outflow.join(inflow, how='outer').fillna(0).reset_index()
-    flow['Netflow'] = flow['Inflow'] - flow['Outflow'] 
-
-    print(f"\nSuccess! Combined flow at {freq} frequency. Total rows: {len(flow)}")
-    return flow
-
+    return df
 #--------------------------------------------------------------------------------------
 #Main
 #--------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    current_dir = Path(__file__).parent
-    root = current_dir.parent.parent
-    data_dir = root / "data" 
+    config = get_config("baseline.yaml")
     
     #Read Raw Files
-    trip = pd.read_csv(data_dir / "raw" / "pogoh_trip_data.csv")
-    station = pd.read_csv(data_dir / "raw" / "pogoh_station_data.csv")
+    trips = pd.read_parquet(config["paths"]["raw_trips"], engine='pyarrow')
+    stations = pd.read_parquet(config["paths"]["stations"], engine='pyarrow')
     
+    #Filter trips to normal
+    trips = trips[trips['Closed Status'] == 'NORMAL']
+
     #Inner Join to filter out station id changes
-    trip['Station Name'] = trip['Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    station['Name'] = station['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    filtered = pd.merge(trip, station, left_on=['Station Id', 'Station Name'], right_on=['Id', 'Name'], how='inner')
-    filtered = filtered[['Date', 'Id', 'Netflow']]
+    trips['Start Station Name'] = trips['Start Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    filtered = pd.merge(trips, stations, left_on=['Start Station Id', 'Start Station Name'], right_on=['Id', 'Name'], how='inner')
+    
+    #Calculate the net flow
+    flow = calc_net_demand(filtered)
+    flow = flow[['Start Date', 'Station Id', 'Netflow']]
 
     #Getlist of all IDs
-    station_ids = sorted(station['Id'].unique())
+    station_ids = sorted(stations['Id'].unique())
     
     #Pivot the data
-    filtered = filtered.pivot_table(index='Date', columns='Id', values='Netflow', aggfunc='sum', fill_value=0)
+    flow = flow.pivot_table(index='Start Date', columns='Station Id', values='Netflow', aggfunc='sum', fill_value=0)
     
     #Force the columns to match station list, filling missing ones with 0
-    filtered = filtered.reindex(columns=station_ids, fill_value=0)
-    filtered = add_temporal_encodings(filtered)
-    
-    #Split train vs. test
-    train = filtered.loc[filtered.index < '2025-02-01']
-    test = filtered.loc[filtered.index >= '2025-02-01']
-    
-    #Write  Data to Files
-    train.to_csv(data_dir / "processed" / "train.csv", header=True, index=True)
-    print(f"\nSuccess! wrote data to {data_dir / "processed" / "train.csv"}")
+    flow = flow.reindex(columns=station_ids, fill_value=0)
 
-    test.to_csv(data_dir / "processed" / "test.csv", header=True, index=True)
-    print(f"\nSuccess! wrote data to {data_dir / "processed" / "test.csv"}")
+    #force the rows to include all dates
+    flow = flow.reindex(pd.date_range(start=flow.index.min(), end=flow.index.max(), freq='D'), fill_value=0)
+
+    #Add in the encoding of the times
+    flow = add_temporal_encodings(flow)
+    flow = add_weather_forecast(flow)
+
+    #Write  Data to Files
+    flow.columns = flow.columns.astype(str)
+    flow.to_parquet(config["paths"]["input"], engine='pyarrow')
+    print(f"\nSuccess! wrote data to {config["paths"]["input"]}")
+

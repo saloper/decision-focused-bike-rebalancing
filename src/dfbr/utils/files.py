@@ -21,7 +21,6 @@ def get_config(config_file):
     #Convert file path strings to path objects 
     if 'paths' in config:
         for key, value in config['paths'].items():
-            if 'path' in key:
                 config['paths'][key] = get_path(value)
                 
     return config
