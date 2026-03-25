@@ -94,11 +94,14 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date):
 
 #Define a Simulation object to orchestrate bikes and stations
 class Sim:
-    def __init__(self, station_dict, event_df, predict_model=None, opt_model=None):
+    def __init__(self, station_dict, event_df, predict_ds= None, predict_model=None, opt_model=None):
         self.stations = station_dict
         self.event_df = event_df
         self.current_time = None
-
+        self.predict_ds = predict_ds
+        if self.predict_ds:
+            self.date_to_idx = {date.date(): i for i, date in enumerate(self.predict_ds.dates)}
+        self.predict_model = predict_model
         #Track metrics
         self.lost_demand = {}
         self.over_capacity = {}
@@ -114,7 +117,9 @@ class Sim:
 
         #Daily loop
         for current_date, daily_events in daily_groups:
-            
+            #Add code to predict demand and rebalance
+            if self.predict_ds:
+                idx = self.date_to_idx.get(current_date)
             #Initialize daily metrics
             self.lost_demand[current_date] = 0
             self.over_capacity[current_date] = 0
@@ -147,5 +152,5 @@ class Sim:
                             self.forced_returns[current_date] += 1
                             #Dump the bike
                             station.force_return_bike()
-        
+
         print('Simulation Complete!')

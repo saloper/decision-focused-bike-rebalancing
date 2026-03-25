@@ -14,7 +14,7 @@ class BikeDemandDataset(Dataset):
         all_features = input_scale_cols + input_no_scale_cols
         self.X = torch.tensor(df[all_features].values, dtype=torch.float32)
         self.y = torch.tensor(df[target_cols].values, dtype=torch.float32)
-
+        self.dates = df.index.date
 
         self.scale_idx = list(range(len(input_scale_cols)))
         
@@ -29,12 +29,18 @@ class BikeDemandDataset(Dataset):
                 # Only calculate stats for the weather slice
                 self.mean = torch.mean(self.X[:, self.scale_idx], dim=0)
                 self.std = torch.std(self.X[:, self.scale_idx], dim=0)
+                #Scale targets
+                self.y_mean = torch.mean(self.y, dim = 0)
+                self.y_std = torch.std(self.y, dim = 0)
             else:
                 self.mean = scaling_factor['mean']
                 self.std = scaling_factor['std']
+                self.y_mean = scaling_factor['y_mean']
+                self.y_std = scaling_factor['y_std']
 
             # Apply the Z-score: (x - mu) / sigma
             self.X[:, self.scale_idx] = (self.X[:, self.scale_idx] - self.mean) / (self.std + 1e-8)
+            self.y = (self.y - self.y_mean) / (self.y_std + 1e-8)
 
     def __len__(self):
         return len(self.y)
