@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import torch
 
 #Define a station object to keep track of inventory and handle constraints
 class Station:
@@ -99,9 +100,14 @@ class Sim:
         self.event_df = event_df
         self.current_time = None
         self.predict_ds = predict_ds
+
+        self.sorted_ids = sorted(self.stations.keys())
+        self.id_to_idx = {s_id: i for i, s_id in enumerate(self.sorted_ids)}
+        self.idx_to_id = {i: s_id for i, s_id in enumerate(self.sorted_ids)}
         if self.predict_ds:
-            self.date_to_idx = {date.date(): i for i, date in enumerate(self.predict_ds.dates)}
+            self.date_to_idx = {d: i for i, d in enumerate(self.predict_ds.dates)}
         self.predict_model = predict_model
+        self.opt_model = opt_model
         #Track metrics
         self.lost_demand = {}
         self.over_capacity = {}
@@ -110,6 +116,26 @@ class Sim:
 
         self.failed_trips = set()
 
+    def _execute_rebalance(self, forecast):
+            """Passes current state to Gurobi and updates station objects"""
+            # A. Gather current inventory into a flat numpy array (0-59)
+            current_inv = np.array([self.stations[s_id].inventory for s_id in self.sorted_ids])
+
+            # B. Run Gurobi
+            # Returns: obj_val, flow_matrix, shortage_array, capacity_array
+            _, flow, _, _ = self.opt_model.solve(current_inv, forecast)
+
+            # C. Apply the moves to the physical station objects
+            if flow is not None:
+                for i in range(len(self.sorted_ids)):
+                    for j in range(len(self.sorted_ids)):
+                        if flow[i, j] > 0:
+                            count = int(flow[i, j])
+                            from_id = self.idx_to_id[i]
+                            to_id = self.idx_to_id[j]
+                            
+                            self.stations[from_id].inventory -= count
+                            self.stations[to_id].inventory += count
     def run(self):
         print('Starting Simulation!')
         #Group into discrete days
@@ -117,9 +143,24 @@ class Sim:
 
         #Daily loop
         for current_date, daily_events in daily_groups:
-            #Add code to predict demand and rebalance
-            if self.predict_ds:
+        # --- OVERNIGHT REBALANCING ---
+            if self.predict_ds and self.predict_model and self.opt_model:
                 idx = self.date_to_idx.get(current_date)
+                if idx is not None:
+                    # 1. Get scaled features from Dataset
+                    X_scaled, _ = self.predict_ds[idx]
+                    
+                    # 2. Inference
+                    self.predict_model.eval()
+                    with torch.no_grad():
+                        y_scaled = self.predict_model(X_scaled.unsqueeze(0))
+                        # 3. Un-scale to get actual bike counts
+                        forecast = (y_scaled * self.predict_ds.y_std) + self.predict_ds.y_mean
+                        forecast = torch.clamp(torch.round(forecast), min=0).squeeze().numpy()
+                    
+                    # 4. Move bikes based on forecast!
+                    self._execute_rebalance(forecast)
+
             #Initialize daily metrics
             self.lost_demand[current_date] = 0
             self.over_capacity[current_date] = 0

@@ -45,20 +45,31 @@ output_size = len(train_ds[0][1])
 pred_model = MLP(input_size, output_size, config["model"]["hidden_layers"])
 
 #Create loss function and optimizer
-# criterion = get_loss_func(config["training"]["loss_function"])
-# optimizer = Adam(pred_model.parameters(), lr=config["training"]["learning_rate"], weight_decay=1e-3)
+criterion = get_loss_func(config["training"]["loss_function"])
+optimizer = Adam(pred_model.parameters(), lr=config["training"]["learning_rate"], weight_decay=1e-3)
 
-# #Training loop
-# for epoch in range(config["training"]["epochs"]):
-#     train_loss = train_one_epoch(pred_model, train_dl, optimizer, criterion, 'cpu')
-#     test_loss = evaluate(pred_model, test_dl, criterion, 'cpu')
-#     print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f}")
+#Training loop
+for epoch in range(config["training"]["epochs"]):
+    train_loss = train_one_epoch(pred_model, train_dl, optimizer, criterion, 'cpu')
+    test_loss = evaluate(pred_model, test_dl, criterion, 'cpu')
+    print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f}")
 
+#optimization model
+opt_model = BikeRebalanceModel(
+    station_file_path=config["paths"]["stations"],
+    dist_matrix_file_path=config["paths"]["station_dist_miles"],
+    loss_demand_cost=1,   # High cost to prevent lost demand
+    over_capacity_cost=1,  # Medium cost for full stations
+    movement_cost=0.1      # Low cost per mile moved
+)
 
 #Simulation
 sim = Sim(
     station_dict= create_station_dict(config["paths"]["stations"], config["paths"]["station_dist_miles"], 0.5),
-    event_df= create_event_df(config["paths"]["raw_trips"], config["paths"]["stations"], config["data"]["test_start_date"],  config["data"]["test_end_date"])
+    event_df= create_event_df(config["paths"]["raw_trips"], config["paths"]["stations"], config["data"]["test_start_date"],  config["data"]["test_end_date"]),
+    predict_ds=test_ds,
+    predict_model= pred_model,
+    opt_model=opt_model
 )
 sim.run()
 
