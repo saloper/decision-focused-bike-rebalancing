@@ -156,7 +156,7 @@ class Sim:
                         y_scaled = self.predict_model(X_scaled.unsqueeze(0))
                         # 3. Un-scale to get actual bike counts
                         forecast = (y_scaled * self.predict_ds.y_std) + self.predict_ds.y_mean
-                        forecast = torch.clamp(torch.round(forecast), min=0).squeeze().numpy()
+                        forecast = torch.round(forecast).squeeze().numpy()
                     
                     # 4. Move bikes based on forecast!
                     self._execute_rebalance(forecast)
