@@ -5,12 +5,17 @@ import pandas as pd
 
 class BikeRebalanceModel:
 
-    def __init__(self, station_file_path, loss_demand_cost, over_capacity_cost, movement_cost):
+    def __init__(self, station_file_path, dist_matrix_file_path, loss_demand_cost, over_capacity_cost, movement_cost):
         
         #Initialize Inputs
-        df = pd.read_parquet(station_file_path, engine='pyarrow')
-        self.capacity = df['Total Docks'].values
+        stations = pd.read_parquet(station_file_path, engine='pyarrow')
+        distance = pd.read_parquet(dist_matrix_file_path, engine='pyarrow')
+        #Sort by id 
+        stations.sort_values(by='Id', inplace=True)
+        distance.sort_index(inplace=True)
+        self.capacity = stations['Total Docks'].values
         self.num_stations = len(self.capacity)
+        self.dist_matrix = distance.values
         self.loss_demand_cost = loss_demand_cost
         self.over_capacity_cost = over_capacity_cost
         self.movement_cost = movement_cost
@@ -48,11 +53,11 @@ class BikeRebalanceModel:
 
         #Set the objective
         penalty_costs = gp.quicksum(self.d[i] * self.loss_demand_cost + self.c[i] * self.over_capacity_cost for i in range(self.num_stations))
-        routing_costs = gp.quicksum(self.x[i, j] * self.movement_cost for i in range(self.num_stations) for j in range(self.num_stations) if i != j)
+        routing_costs = gp.quicksum(self.x[i, j] * self.dist_matrix[i,j] * self.movement_cost for i in range(self.num_stations) for j in range(self.num_stations) if i != j)
         self.model.setObjective(penalty_costs + routing_costs, GRB.MINIMIZE)
 
         #Initialize Constraint
-        self.shoratge_constrs = []
+        self.shortage_constrs = []
         self.capacity_constrs = []
         self.inv_out_constrs = []
         self.inv_in_constrs = []
@@ -62,7 +67,7 @@ class BikeRebalanceModel:
             bikes_leaving = gp.quicksum(self.x[i, j] for j in range(self.num_stations) if i != j)
         
             #Lower Bound Constraint (shortage)
-            self.shoratge_constrs.append(self.model.addConstr(
+            self.shortage_constrs.append(self.model.addConstr(
                 bikes_arriving - bikes_leaving + self.d[i] >= 0,
                 name=f"shortage_constraint_station_{i}"
             ))
@@ -88,7 +93,7 @@ class BikeRebalanceModel:
     def update_constraints(self, current_inventory, demand):
         
         for i in range(self.num_stations):
-            self.shoratge_constrs[i].RHS = -demand[i] - current_inventory[i]
+            self.shortage_constrs[i].RHS = -demand[i] - current_inventory[i]
             self.capacity_constrs[i].RHS = self.capacity[i] - demand[i] - current_inventory[i]
             self.inv_out_constrs[i].RHS = current_inventory[i]
             self.inv_in_constrs[i].RHS = self.capacity[i] -current_inventory[i]

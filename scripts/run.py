@@ -43,7 +43,7 @@ pred_model = MLP(input_size, output_size, config["model"]["hidden_layers"])
 
 #Create loss function and optimizer
 criterion = get_loss_func(config["training"]["loss_function"])
-optimizer = Adam(pred_model.parameters(), lr=config["training"]["learning_rate"])
+optimizer = Adam(pred_model.parameters(), lr=config["training"]["learning_rate"], weight_decay=4e-2)
 
 #Training loop
 for epoch in range(config["training"]["epochs"]):
