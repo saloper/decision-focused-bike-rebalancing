@@ -28,4 +28,5 @@ model:
   movement_cost: 0.1      
 
 sim:
-  start_inv_pct: 0.5
+  start_inv_pct: 0.6
+  predict: False

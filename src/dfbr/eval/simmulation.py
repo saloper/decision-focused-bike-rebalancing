@@ -109,11 +109,12 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date):
 
 #Define a Simulation object to orchestrate bikes and stations
 class Sim:
-    def __init__(self, station_dict, event_df, predict_ds= None, predict_model=None, opt_model=None):
+    def __init__(self, station_dict, event_df, predict, predict_ds= None, predict_model=None, opt_model=None):
         self.stations = station_dict
         self.event_df = event_df
         self.current_time = None
         self.predict_ds = predict_ds
+        self.predict = predict
         #Sort again to be safe
         self.sorted_ids = sorted(self.stations.keys())
         #Create mappings from ids and dates to indices
@@ -181,14 +182,17 @@ class Sim:
                 idx = self.date_to_idx.get(current_date)
                 if idx is not None:
                     #Get scaled features from dataset
-                    X_scaled, _ = self.predict_ds[idx]
-                    
-                    #Inference
-                    self.predict_model.eval()
-                    with torch.no_grad():
-                        y_scaled = self.predict_model(X_scaled.unsqueeze(0))
-                        #Un-scale to get actual bike counts
-                        forecast = (y_scaled * self.predict_ds.y_std) + self.predict_ds.y_mean
+                    X_scaled, y_true = self.predict_ds[idx]
+                    if self.predict:
+                        #Inference
+                        self.predict_model.eval()
+                        with torch.no_grad():
+                            y_scaled = self.predict_model(X_scaled.unsqueeze(0))
+                            #Un-scale to get actual bike counts
+                            forecast = (y_scaled * self.predict_ds.y_std) + self.predict_ds.y_mean
+                            forecast = torch.round(forecast).squeeze().numpy()
+                    else:
+                        forecast = (y_true * self.predict_ds.y_std) + self.predict_ds.y_mean
                         forecast = torch.round(forecast).squeeze().numpy()
                     
                     #Move bikes based on forecast
