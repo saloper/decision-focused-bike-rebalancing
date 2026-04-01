@@ -14,7 +14,7 @@ class BikeDemandDataset(Dataset):
         all_features = input_scale_cols + input_no_scale_cols
         self.X = torch.tensor(df[all_features].values, dtype=torch.float32)
         self.y = torch.tensor(df[target_cols].values, dtype=torch.float32)
-        self.dates = df.index.date
+        self.dates = df.index.date #Store dates for later indexing
 
         self.scale_idx = list(range(len(input_scale_cols)))
         
