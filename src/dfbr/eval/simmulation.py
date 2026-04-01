@@ -68,7 +68,7 @@ def create_station_dict(station_file_path, dist_file_path, start_inv_pct):
         return stations
 
 #Create a dataframe of events to simmulate through
-def create_event_df(trip_file_path, station_file_path, start_date, end_date):
+def create_event_df(trip_file_path, station_file_path, start_date, end_date, cutoff_hour = None):
     #Read Raw Files
     trips = pd.read_parquet(trip_file_path, engine='pyarrow')
     stations = pd.read_parquet(station_file_path, engine='pyarrow')
@@ -102,6 +102,11 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date):
 
     #Combine and sort
     event_df = pd.concat([rents, returns], ignore_index=True)
+    
+    if cutoff_hour is not None:
+        # Keep only events where the hour is strictly less than the cutoff (e.g., < 12 keeps 0 through 11)
+        event_df = event_df[event_df['time'].dt.hour < cutoff_hour]
+
     event_df.sort_values(by=['time', 'event_type'], inplace=True)
 
     return event_df
@@ -109,12 +114,14 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date):
 
 #Define a Simulation object to orchestrate bikes and stations
 class Sim:
-    def __init__(self, station_dict, event_df, predict, predict_ds= None, predict_model=None, opt_model=None):
+    def __init__(self, station_dict, event_df, reset_inv, predict, reset_inv_pct=0, predict_ds= None, predict_model=None, opt_model=None):
         self.stations = station_dict
         self.event_df = event_df
         self.current_time = None
         self.predict_ds = predict_ds
         self.predict = predict
+        self.reset_inv = reset_inv
+        self.reset_inv_pct = reset_inv_pct
         #Sort again to be safe
         self.sorted_ids = sorted(self.stations.keys())
         #Create mappings from ids and dates to indices
@@ -176,6 +183,9 @@ class Sim:
                 station.lost_demand[current_date] = 0
                 station.over_capacity[current_date] = 0
                 station.forced_returns[current_date] = 0
+                #Reset Inventory
+                if self.reset_inv:
+                    station.inventory = int(station.capacity * self.reset_inv_pct)
 
         #Overnight rebalancing
             if self.predict_ds and self.predict_model and self.opt_model:
@@ -205,6 +215,7 @@ class Sim:
 
             #Loop through daily events
             for row in daily_events.itertuples(index=False):
+
                 #Check if trying to remove a failed trip
                 if row.event_type == 'return' and row.trip_id in self.failed_trips:
                     self.failed_trips.remove(row.trip_id)

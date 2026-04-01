@@ -25,8 +25,10 @@ model:
   hidden_layers: [128]
   loss_demand_cost: 1   
   over_capacity_cost: 1  
-  movement_cost: 0.1      
+  movement_cost: 0.01      
 
 sim:
-  start_inv_pct: 0.6
-  predict: False
+  start_inv_pct: 0.5
+  predict: True
+  cutoff_hour: 12
+  resest_inv: True
