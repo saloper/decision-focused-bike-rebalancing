@@ -24,7 +24,7 @@ def calc_net_demand(data, freq='D'):
     inflow.index.names = ['Start Date', 'Station Id',]
 
     flow = outflow.join(inflow, how='outer').fillna(0).reset_index()
-    flow['Netflow'] = flow['Inflow'] - flow['Outflow'] 
+    flow['Netflow'] =  flow['Outflow'] - flow['Inflow'] 
 
     print(f"\nSuccess! Combined flow at {freq} frequency. Total rows: {len(flow)}")
 

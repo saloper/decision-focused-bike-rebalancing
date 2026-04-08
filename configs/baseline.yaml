@@ -31,4 +31,4 @@ sim:
   start_inv_pct: 0.5
   predict: True
   cutoff_hour: 12
-  resest_inv: True
+  reset_inv: True

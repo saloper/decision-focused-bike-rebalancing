@@ -93,8 +93,8 @@ class BikeRebalanceModel:
     def update_constraints(self, current_inventory, demand):
         
         for i in range(self.num_stations):
-            self.shortage_constrs[i].RHS = -demand[i] - current_inventory[i]
-            self.capacity_constrs[i].RHS = self.capacity[i] - demand[i] - current_inventory[i]
+            self.shortage_constrs[i].RHS = demand[i] - current_inventory[i]
+            self.capacity_constrs[i].RHS = self.capacity[i] + demand[i] - current_inventory[i]
             self.inv_out_constrs[i].RHS = current_inventory[i]
             self.inv_in_constrs[i].RHS = self.capacity[i] -current_inventory[i]
 
