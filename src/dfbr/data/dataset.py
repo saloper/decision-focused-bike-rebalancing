@@ -1,9 +1,10 @@
+from dfbr.models.cost_head import CostHead
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
 
 class BikeDemandDataset(Dataset):
-    def __init__(self, file, start_date, end_date, target_cols, input_scale_cols, input_no_scale_cols, is_train=True, scaling_factor=None):
+    def __init__(self, file, start_date, end_date, target_cols, input_scale_cols, input_no_scale_cols, capacities, max_cap, is_train=True, scaling_factor=None):
         
         #Read the file
         df = pd.read_parquet(file, engine='pyarrow')
@@ -14,8 +15,11 @@ class BikeDemandDataset(Dataset):
         all_features = input_scale_cols + input_no_scale_cols
         self.X = torch.tensor(df[all_features].values, dtype=torch.float32)
         self.y = torch.tensor(df[target_cols].values, dtype=torch.float32)
-        self.dates = df.index.date #Store dates for later indexing
+        #Transform demand into cost functions 
+        costhead = CostHead(capacities, max_cap)
+        self.c = costhead(self.y)
 
+        self.dates = df.index.date #Store dates for later indexing
         self.scale_idx = list(range(len(input_scale_cols)))
         
         if len(self.scale_idx) > 0:
@@ -38,12 +42,11 @@ class BikeDemandDataset(Dataset):
                 self.y_mean = scaling_factor['y_mean']
                 self.y_std = scaling_factor['y_std']
 
-            # Apply the Z-score: (x - mu) / sigma
+            # Apply the Z-score: (x - mu) / sigma to FEATURES ONLY
             self.X[:, self.scale_idx] = (self.X[:, self.scale_idx] - self.mean) / (self.std + 1e-8)
-            self.y = (self.y - self.y_mean) / (self.y_std + 1e-8)
 
     def __len__(self):
         return len(self.y)
 
     def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+        return self.X[idx], self.y[idx], self.c[idx]
