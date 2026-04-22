@@ -26,7 +26,7 @@ station_dict = create_station_dict(config["paths"]["stations"], config["paths"][
 station_ids = sorted(station_dict.keys())
 #Get parameters for shapes of datasets and models
 num_stations = len(station_dict)
-capacities = [s.capacity for s in station_dict.values()]
+capacities = [station_dict[sid].capacity for sid in station_ids]
 max_cap = max(capacities)
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ test_ds = BikeDemandDataset(
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Solve for optimal values with ground truth data
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-opt_model = BikeStationTargets(num_stations=num_stations, max_cap=max_cap, total_inventory=config["model"]["total_inventory"])
+opt_model = BikeStationTargets(num_stations=num_stations, max_cap=max_cap, total_inventory=int(sum(capacities) * config["sim"]["start_inv_pct"]))
 pyepo_train_ds = BikeOptTargetsDataset(opt_model, train_ds.X.numpy(), train_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), train_ds.y.numpy())
 pyepo_test_ds = BikeOptTargetsDataset(opt_model, test_ds.X.numpy(), test_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), test_ds.y.numpy())
 
@@ -87,6 +87,23 @@ full_model = nn.Sequential(pred_model, cost_head)
 optimizer = Adam(full_model.parameters(), lr=config["training"]["learning_rate"])
 spo = pyepo.func.SPOPlus(opt_model, processes=1)
 mse = nn.MSELoss()
+
+
+
+# #Warmstart 
+# #Training loop
+# for epoch in range(config["training"]["epochs"]):
+#     pred_model.train()
+#     #Training Loop
+#     for x, c, w, z, y in train_dl:
+#         #Forward pass
+#         yp = pred_model(x)
+#         loss = mse(yp, y)
+#         #Backward pass
+#         optimizer.zero_grad()
+#         loss.backward()
+#         optimizer.step()
+    
 
 #Training loop
 for epoch in range(config["training"]["epochs"]):
@@ -131,89 +148,59 @@ print(f"Final Stats:\nTrain MSE: {train_mse:.4f} Train Cost: {train_cost:.4f}, O
 
 
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Run Simulation
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Simulation
+sim = Sim(
+    station_dict= station_dict,
+    station_ids=station_ids,
+    event_df = create_event_df(config["paths"]["raw_trips"], config["paths"]["stations"], config["data"]["test_start_date"],  config["data"]["test_end_date"], config["sim"]["cutoff_hour"]),
+    reset_inv = config["sim"]["reset_inv"],
+    reset_inv_pct = config["sim"]["start_inv_pct"],
+    num_stations=num_stations,
+    max_cap=max_cap,
+    predict_ds = test_ds,
+    predict_model = pred_model,
+    cost_head=cost_head,
+    opt_model = opt_model
+)
+sim.run()
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Collect Metrics and Plot
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+df_metrics = pd.DataFrame({
+    'Lost Demand': sim.lost_demand,
+    'Over Capacity': sim.over_capacity,
+    'Forced Returns': sim.forced_returns,
+    'Moved Bikes' : sim.moved_bikes,
+    'Total Inventory' : sim.total_inventory,
+    })
 
+print(f'System Metrics: \n{df_metrics.mean()}')
 
+axes = df_metrics.plot(
+    kind='line',
+    subplots=True, 
+    figsize=(12, 8), 
+    marker='o', 
+    alpha=0.8,
+    sharex=True
+    )
 
+plt.suptitle("System-Wide Daily Metrics", fontsize=14)
 
+# Loop through each of the 3 axes to add gridlines and Y-labels
+for ax in axes:
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.set_ylabel("Events")
 
+# The X-label only needs to go on the bottom-most plot
+plt.xlabel("Date")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# #Run Simulation
-# #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# #optimization model
-# opt_model = BikeRebalanceModel(
-#     station_file_path=config["paths"]["stations"],
-#     dist_matrix_file_path=config["paths"]["station_dist_miles"],
-#     loss_demand_cost=config["model"]["loss_demand_cost"],   
-#     over_capacity_cost=config["model"]["over_capacity_cost"],  
-#     movement_cost=config["model"]["movement_cost"]      
-# )
-
-# #Simulation
-# sim = Sim(
-#     station_dict= station_dict,
-#     event_df = create_event_df(config["paths"]["raw_trips"], config["paths"]["stations"], config["data"]["test_start_date"],  config["data"]["test_end_date"], config["sim"]["cutoff_hour"]),
-#     reset_inv = config["sim"]["reset_inv"],
-#     reset_inv_pct = config["sim"]["start_inv_pct"],
-#     predict = config["sim"]["predict"],
-#     predict_ds = test_ds,
-#     predict_model = pred_model,
-#     opt_model = opt_model
-# )
-# sim.run()
-
-# #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# #Collect Metrics and Plot
-# #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# df_metrics = pd.DataFrame({
-#     'Lost Demand': sim.lost_demand,
-#     'Over Capacity': sim.over_capacity,
-#     'Forced Returns': sim.forced_returns,
-#     'Moved Bikes' : sim.moved_bikes,
-#     'Total Inventory' : sim.total_inventory,
-#     })
-
-# print(f'System Metrics: \n{df_metrics.mean()}')
-
-# axes = df_metrics.plot(
-#     kind='line',
-#     subplots=True, 
-#     figsize=(12, 8), 
-#     marker='o', 
-#     alpha=0.8,
-#     sharex=True
-#     )
-
-# plt.suptitle("System-Wide Daily Metrics", fontsize=14)
-
-# # Loop through each of the 3 axes to add gridlines and Y-labels
-# for ax in axes:
-#     ax.grid(True, linestyle='--', alpha=0.6)
-#     ax.set_ylabel("Events")
-
-# # The X-label only needs to go on the bottom-most plot
-# plt.xlabel("Date")
-
-# plt.tight_layout()
-# plt.show()
+plt.tight_layout()
+plt.show()
 
 # #Plot heatmap of station data
 # #Extract the nested dictionaries from the station objects

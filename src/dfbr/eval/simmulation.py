@@ -114,22 +114,24 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date, cut
 
 #Define a Simulation object to orchestrate bikes and stations
 class Sim:
-    def __init__(self, station_dict, event_df, reset_inv, predict, reset_inv_pct=0, predict_ds= None, predict_model=None, opt_model=None):
+    def __init__(self, station_dict, station_ids, event_df, reset_inv, num_stations, max_cap, reset_inv_pct=0, predict_ds= None, predict_model=None, cost_head=None, opt_model=None):
         self.stations = station_dict
         self.event_df = event_df
         self.current_time = None
         self.predict_ds = predict_ds
-        self.predict = predict
         self.reset_inv = reset_inv
         self.reset_inv_pct = reset_inv_pct
+        self.num_stations = num_stations
+        self.max_cap = max_cap
         #Sort again to be safe
-        self.sorted_ids = sorted(self.stations.keys())
+        self.station_ids = station_ids
         #Create mappings from ids and dates to indices
-        self.id_to_idx = {s_id : i for i, s_id in enumerate(self.sorted_ids)}
-        self.idx_to_id = {i : s_id for i, s_id in enumerate(self.sorted_ids)}
+        self.id_to_idx = {s_id : i for i, s_id in enumerate(self.station_ids)}
+        self.idx_to_id = {i : s_id for i, s_id in enumerate(self.station_ids)}
         if self.predict_ds:
             self.date_to_idx = {d : i for i, d in enumerate(self.predict_ds.dates)}
         self.predict_model = predict_model
+        self.cost_head = cost_head
         self.opt_model = opt_model
         #Track metrics
         self.moved_bikes = {}
@@ -140,26 +142,20 @@ class Sim:
 
         self.failed_trips = set()
 
-    def _execute_rebalance(self, forecast):
-            #Get current inventory
-            current_inv = np.array([self.stations[s_id].inventory for s_id in self.sorted_ids])
-            
+    def _execute_rebalance(self, cp):
             #Run optimization model
-            #Returns: obj_val, flow_matrix, shortage_array, capacity_array
-            _, flow, _, _ = self.opt_model.solve(current_inv, forecast)
-
+            self.opt_model.setObj(cp.squeeze(0))
+            wp, _ = self.opt_model.solve()
+            #Reshape into targets
+            wp = np.array(wp).reshape(self.num_stations, self.max_cap+1)
+            targets = np.argmax(wp, axis =1)
             total_moves = 0
-            #Apply output to each station
-            if flow is not None:
-                for i in range(len(self.sorted_ids)):
-                    for j in range(len(self.sorted_ids)):
-                        if flow[i, j] > 0:
-                            count = int(round(flow[i, j]))
-                            from_id = self.idx_to_id[i]
-                            to_id = self.idx_to_id[j]
-                            self.stations[from_id].inventory -= count
-                            self.stations[to_id].inventory += count
-                            total_moves += count
+            #Apply the targets
+            for i in range(len(self.station_ids)):
+                station_id = self.idx_to_id[i]
+                #print(f"Station: {station_id} Inventory: {self.stations[station_id].inventory} Target: {targets[i]}")
+                total_moves += abs(self.stations[station_id].inventory - targets[i])
+                self.stations[station_id].inventory = targets[i]
             
             return total_moves
 
@@ -183,30 +179,22 @@ class Sim:
                 station.lost_demand[current_date] = 0
                 station.over_capacity[current_date] = 0
                 station.forced_returns[current_date] = 0
-                #Reset Inventory
-                if self.reset_inv:
-                    station.inventory = int(station.capacity * self.reset_inv_pct)
 
         #Overnight rebalancing
-            if self.predict_ds and self.predict_model and self.opt_model:
+            if self.predict_ds and self.predict_model and self.cost_head and self.opt_model:
                 idx = self.date_to_idx.get(current_date)
                 if idx is not None:
                     #Get scaled features from dataset
-                    X_scaled, y_true = self.predict_ds[idx]
-                    if self.predict:
-                        #Inference
-                        self.predict_model.eval()
-                        with torch.no_grad():
-                            y_scaled = self.predict_model(X_scaled.unsqueeze(0))
-                            #Un-scale to get actual bike counts
-                            forecast = (y_scaled * self.predict_ds.y_std) + self.predict_ds.y_mean
-                            forecast = torch.round(forecast).squeeze().numpy()
-                    else:
-                        forecast = (y_true * self.predict_ds.y_std) + self.predict_ds.y_mean
-                        forecast = torch.round(forecast).squeeze().numpy()
+                    x, y, _ = self.predict_ds[idx]
+                    #Inference
+                    self.predict_model.eval()
+                    with torch.no_grad():
+                        yp = self.predict_model(x.unsqueeze(0))
+                        cp = self.cost_head(yp)
                     
                     #Move bikes based on forecast
-                    self.moved_bikes[current_date] = self._execute_rebalance(forecast)
+                    self.moved_bikes[current_date] = self._execute_rebalance(cp)
+
 
                     #Log event in stations history
                     midnight = pd.to_datetime(current_date).tz_localize('America/New_York')

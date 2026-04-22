@@ -18,18 +18,15 @@ training:
   batch_size: 32
   epochs: 25
   learning_rate: 1.0e-2
-  decision_loss: True
+  decision_loss: False
   weight_decay : 1.0e-3
 
 model:
   hidden_layers: []
   loss_demand_cost: 1   
-  over_capacity_cost: 1  
-  movement_cost: 0.01
-  total_inventory: 600      
+  over_capacity_cost: 1      
 
 sim:
   start_inv_pct: 0.5
-  predict: True
   cutoff_hour: 24
   reset_inv: True
