@@ -1,8 +1,10 @@
 from dfbr.models.cost_head import CostHead
 import torch
 from torch.utils.data import Dataset
+from pyepo.data.dataset import optDataset
 import pandas as pd
 
+#Base dataset for standard MSE based training
 class BikeDemandDataset(Dataset):
     def __init__(self, file, start_date, end_date, target_cols, input_scale_cols, input_no_scale_cols, capacities, max_cap, is_train=True, scaling_factor=None):
         
@@ -11,10 +13,12 @@ class BikeDemandDataset(Dataset):
 
         #Filter dates
         df = df.loc[start_date : end_date]
+        
         #Separate features and targets
         all_features = input_scale_cols + input_no_scale_cols
         self.X = torch.tensor(df[all_features].values, dtype=torch.float32)
         self.y = torch.tensor(df[target_cols].values, dtype=torch.float32)
+        
         #Transform demand into cost functions 
         costhead = CostHead(capacities, max_cap)
         self.c = costhead(self.y)
@@ -50,3 +54,13 @@ class BikeDemandDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx], self.c[idx]
+    
+#PyEpo dataset to return optimized targets, costs, optimization, and objective value 
+class BikeOptTargetsDataset(optDataset):
+    def __init__(self, optmodel, features, costs, pred):
+        super().__init__(optmodel, features, costs)
+        self.pred = pred
+        
+    def __getitem__(self, idx):
+        x, c, w, z = super().__getitem__(idx)
+        return x, c, w, z, self.pred[idx]

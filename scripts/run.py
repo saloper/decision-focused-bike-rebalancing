@@ -1,16 +1,17 @@
 from dfbr.utils.files import get_config
-from dfbr.data.dataset import BikeDemandDataset
+from dfbr.data.dataset import BikeDemandDataset, BikeOptTargetsDataset
 from dfbr.models.station_targets import BikeStationTargets
 from dfbr.models.cost_head import CostHead
 from dfbr.models.mlp import MLP
 from dfbr.eval.simmulation import Sim, create_station_dict, create_event_df
-from dfbr.training.train import get_loss_func, train_one_epoch, evaluate
+from dfbr.training.train import evaluate
 import pandas as pd
 import matplotlib.pylab as plt
 import seaborn as sns
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 import torch.nn as nn
+import torch
 import pyepo
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -61,17 +62,18 @@ test_ds = BikeDemandDataset(
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Solve for optimal values with ground truth data
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-optmodel = BikeStationTargets(num_stations=num_stations, max_cap=max_cap, total_inventory=config["model"]["total_inventory"])
-pyepo_train_ds = pyepo.data.dataset.optDataset(optmodel, train_ds.X, train_ds.c.view(-1, num_stations * (max_cap + 1)))
-pyepo_test_ds = pyepo.data.dataset.optDataset(optmodel, test_ds.X, test_ds.c.view(-1, num_stations * (max_cap + 1)))
+opt_model = BikeStationTargets(num_stations=num_stations, max_cap=max_cap, total_inventory=config["model"]["total_inventory"])
+pyepo_train_ds = BikeOptTargetsDataset(opt_model, train_ds.X.numpy(), train_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), train_ds.y.numpy())
+pyepo_test_ds = BikeOptTargetsDataset(opt_model, test_ds.X.numpy(), test_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), test_ds.y.numpy())
 
 #Wrap Data Loaders
-train_dl = DataLoader(pyepo_train_ds, batch_size=config["training"]["batch_size"], shuffle=False)
+train_dl = DataLoader(pyepo_train_ds, batch_size=config["training"]["batch_size"], shuffle=True)
 test_dl = DataLoader(pyepo_test_ds, batch_size=config["training"]["batch_size"], shuffle=False)
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Instantiate Models and loss functions
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #Create MLP
 input_size = len(train_ds[0][0])
 output_size = num_stations
@@ -83,25 +85,49 @@ full_model = nn.Sequential(pred_model, cost_head)
 
 #Create optimizer
 optimizer = Adam(full_model.parameters(), lr=config["training"]["learning_rate"])
-spo = pyepo.func.SPOPlus(optmodel, processes=1)
+spo = pyepo.func.SPOPlus(opt_model, processes=1)
+mse = nn.MSELoss()
 
 #Training loop
 for epoch in range(config["training"]["epochs"]):
-    for x, c, w, z in train_dl:
+    epoch_train_loss = []
+    epoch_test_loss = []
+
+    pred_model.train()
+    #Training Loop
+    for x, c, w, z, y in train_dl:
         #Forward pass
-        cp = full_model(x)
-        loss = spo(cp, c, w, z)
+        yp = pred_model(x)
+        if config["training"]["decision_loss"]:
+            cp = cost_head(yp)
+            loss = spo(cp, c, w, z)
+        else:
+            loss = mse(yp, y)
+
+        epoch_train_loss.append(loss.item())
         #Backward pass
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    train_regret = pyepo.metric.regret(full_model, optmodel, train_dl)
-    test_regret = pyepo.metric.regret(full_model, optmodel, test_dl)   
+    
+    #Test Loop
+    with torch.no_grad():
+        for x, c, w, z, y in test_dl:
+            #Forward pass
+            yp = pred_model(x)
+            if config["training"]["decision_loss"]:
+                cp = cost_head(yp)
+                loss = spo(cp, c, w, z)
+            else:
+                loss = mse(yp, y)
 
-    print(f"Epoch {epoch+1} | Train Regret: {train_regret:.4f} | Test Regret: {test_regret:.4f}")
+            epoch_test_loss.append(loss.item())
 
-
-
+    print(f"Epoch {epoch+1} Train Loss: {(sum(epoch_train_loss) / len(epoch_train_loss)):.4f} Test Loss: {(sum(epoch_test_loss) / len(epoch_test_loss)):.4f}")
+    
+train_mse, train_cost, opt_train_cost = evaluate(pred_model, cost_head, opt_model, train_dl)
+test_mse, test_cost, opt_test_cost = evaluate(pred_model, cost_head, opt_model, test_dl)
+print(f"Final Stats:\nTrain MSE: {train_mse:.4f} Train Cost: {train_cost:.4f}, Optimal Train Cost: {opt_train_cost:.4f}\nTest MSE: {test_mse:.4f} Test Cost: {test_cost:.4f}, Optimal Test Cost: {opt_test_cost:.4f}")
 
 
 
