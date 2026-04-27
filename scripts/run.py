@@ -1,10 +1,13 @@
-from dfbr.utils.files import get_config
+from dfbr.utils.files import get_config, get_path
 from dfbr.data.dataset import BikeDemandDataset, BikeOptTargetsDataset
 from dfbr.models.station_targets import BikeStationTargets
 from dfbr.models.cost_head import CostHead
 from dfbr.models.mlp import MLP
 from dfbr.eval.simmulation import Sim, create_station_dict, create_event_df
 from dfbr.training.train import evaluate
+import datetime
+import argparse
+import shutil
 import pandas as pd
 import matplotlib.pylab as plt
 import seaborn as sns
@@ -17,6 +20,14 @@ import pyepo
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Setup
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Get timestamp and create directory to hold data 
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+run_dir = get_path(f"experiments\\POGOH\\{timestamp}\\")
+run_dir.mkdir(parents=True, exist_ok=True)
+
+#Make a copy of the configuration used
+shutil.copy(get_path("configs/baseline.yaml"), run_dir / "config.yaml")
+
 #Read config
 config = get_config("baseline.yaml")
 
@@ -120,7 +131,7 @@ for epoch in range(config["training"]["epochs"]):
             loss = spo(cp, c, w, z)
         else:
             loss = mse(yp, y)
-
+            
         epoch_train_loss.append(loss.item())
         #Backward pass
         optimizer.zero_grad()
@@ -142,8 +153,12 @@ for epoch in range(config["training"]["epochs"]):
 
     print(f"Epoch {epoch+1} Train Loss: {(sum(epoch_train_loss) / len(epoch_train_loss)):.4f} Test Loss: {(sum(epoch_test_loss) / len(epoch_test_loss)):.4f}")
     
-train_mse, train_cost, opt_train_cost = evaluate(pred_model, cost_head, opt_model, train_dl)
-test_mse, test_cost, opt_test_cost = evaluate(pred_model, cost_head, opt_model, test_dl)
+train_mse, train_cost, opt_train_cost, train_df = evaluate(pred_model, cost_head, opt_model, train_dl, 'train')
+test_mse, test_cost, opt_test_cost, test_df = evaluate(pred_model, cost_head, opt_model, test_dl, 'test')
+#Save data
+df = pd.concat([train_df, test_df], ignore_index=True)
+df.to_parquet(run_dir / "results.parquet")
+
 print(f"Final Stats:\nTrain MSE: {train_mse:.4f} Train Cost: {train_cost:.4f}, Optimal Train Cost: {opt_train_cost:.4f}\nTest MSE: {test_mse:.4f} Test Cost: {test_cost:.4f}, Optimal Test Cost: {opt_test_cost:.4f}")
 
 

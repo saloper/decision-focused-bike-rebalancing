@@ -7,6 +7,8 @@ class CostHead(nn.Module):
         super().__init__()
         self.over_cost = over_cost
         self.lost_cost = lost_cost
+        self.max_cap = max_cap
+        self.num_stations = len(capacities)
         self.targets = torch.arange(max_cap + 1, dtype=torch.float32).view(1, 1, -1) #(1, 1, max_cap +1)
         self.capacities = torch.tensor(capacities, dtype=torch.float32).view(1, -1, 1) #(1, S, 1)
     

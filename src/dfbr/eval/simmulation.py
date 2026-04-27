@@ -195,7 +195,6 @@ class Sim:
                     #Move bikes based on forecast
                     self.moved_bikes[current_date] = self._execute_rebalance(cp)
 
-
                     #Log event in stations history
                     midnight = pd.to_datetime(current_date).tz_localize('America/New_York')
                     for station in self.stations.values():

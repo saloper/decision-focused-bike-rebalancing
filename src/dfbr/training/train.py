@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device):
     model.train()
@@ -19,28 +20,55 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
             
     return total_loss / len(dataloader)
 
-def evaluate(pred_model, cost_head, opt_model, dataloader):
+def evaluate(pred_model, cost_head, opt_model, dataloader, split):
     pred_model.eval()
     total_samples = 0
     total_mse = []
-    total_cost = 0.0
-    optimal_cost = 0.0
+    true_demand = []
+    true_targets = []
+    true_obj = []
+    pred_demand = []
+    pred_targets = []
+    pred_obj = []
+    real_obj = []
 
     with torch.no_grad():  
         for x, c, w, z, y in dataloader:
+            true_demand.append(y)
+            w = w.view(-1, cost_head.num_stations, cost_head.max_cap +1)
+            true_targets.append(torch.argmax(w, axis = 2))
+            true_obj.append(z)
+
             #Get predictions and predicted cost function
             yp = pred_model(x)
             cp = cost_head(yp)
+            pred_demand.append(yp)
+
             #Comute mse 
             batch_mse = F.mse_loss(yp, y)
-            total_mse.append(batch_mse)
+            total_mse.append(batch_mse.item())
             total_samples += x.shape[0]
 
             #Compute total cost
             for i in range(x.shape[0]):
                 opt_model.setObj(cp[i])
-                wp, _ = opt_model.solve()
-                total_cost += np.dot(wp,  c[i])
-                optimal_cost += z[i].item()
+                wp, zp = opt_model.solve()
+                real_cost = np.dot(wp,  c[i])
+                pred_obj.append(zp)
+                real_obj.append(real_cost)
+                #Get targets 
+                target = torch.tensor(wp).view(cost_head.num_stations, cost_head.max_cap +1)
+                pred_targets.append(torch.argmax(target, axis = 1).tolist())
 
-    return (sum(total_mse) / len(total_mse)), (total_cost / total_samples), (optimal_cost / total_samples)
+    df = pd.DataFrame({
+        'split' : f"{split}",
+        'true_demand': torch.cat(true_demand, axis=0).tolist(),
+        'true_targets': torch.cat(true_targets, axis=0).tolist(),
+        'true_obj': torch.cat(true_obj, axis=0).squeeze().tolist(), 
+        'pred_demand': torch.cat(pred_demand, axis=0).tolist(),
+        'pred_targets': pred_targets,
+        'pred_obj': pred_obj, 
+        'real_obj': real_obj, 
+    })
+
+    return (sum(total_mse) / len(total_mse)), df['real_obj'].mean(), df['true_obj'].mean(), df
