@@ -20,16 +20,20 @@ import pyepo
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Setup
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#Get timestamp and create directory to hold data 
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-run_dir = get_path(f"experiments\\POGOH\\{timestamp}\\")
-run_dir.mkdir(parents=True, exist_ok=True)
-
-#Make a copy of the configuration used
-shutil.copy(get_path("configs/baseline.yaml"), run_dir / "config.yaml")
 
 #Read config
 config = get_config("baseline.yaml")
+
+#Get timestamp and create directory to hold data 
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+if config["training"]["decision_loss"]:
+    run_dir = get_path(f"experiments\\pogoh\\dfl\\{timestamp}\\")
+else:
+    run_dir = get_path(f"experiments\\pogoh\\mse\\{timestamp}\\")
+
+run_dir.mkdir(parents=True, exist_ok=True)
+#Make a copy of the configuration used
+shutil.copy(get_path("configs/baseline.yaml"), run_dir / "config.yaml")
 
 #Create a dictionary of stations
 station_dict = create_station_dict(config["paths"]["stations"], config["paths"]["station_dist_miles"], config["sim"]["start_inv_pct"])

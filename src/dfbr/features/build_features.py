@@ -92,8 +92,10 @@ if __name__ == '__main__':
 
     #Inner Join to filter out station id changes
     trips['Start Station Name'] = trips['Start Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    trips['End Station Name'] = trips['End Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
     stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
     filtered = pd.merge(trips, stations, left_on=['Start Station Id', 'Start Station Name'], right_on=['Id', 'Name'], how='inner')
+    filtered = pd.merge(filtered, stations, left_on=['End Station Id', 'End Station Name'], right_on=['Id', 'Name'], how='inner')
     
     #Calculate the net flow
     flow = calc_net_demand(filtered)
