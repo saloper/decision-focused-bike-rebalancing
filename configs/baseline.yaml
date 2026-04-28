@@ -9,14 +9,14 @@ paths:
   input: "data/processed/pogoh_input.parquet"
 
 data:
-  train_start_date: '2023-01-01' #Start and End dates are inclusive
+  train_start_date: '2023-08-01' #Start and End dates are inclusive
   train_end_date: '2024-12-31'
   test_start_date: '2025-01-01'
   test_end_date: '2025-12-31'
 
 training:
   batch_size: 32
-  epochs: 50
+  epochs: 25
   learning_rate: 1.0e-2
   decision_loss: False
   weight_decay : 1.0e-3

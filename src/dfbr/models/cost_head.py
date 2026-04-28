@@ -17,8 +17,13 @@ class CostHead(nn.Module):
         d_expanded = predicted_demand.unsqueeze(2) #(B,S,1)
         ending_inv = self.targets - d_expanded #(B, S, max_cap +1)
     
-        overflow_cost = self.over_cost * F.relu(ending_inv - self.capacities)
-        lost_cost = self.lost_cost * F.relu(-ending_inv,)
+        if self.training:
+            activation = F.softplus
+        else:
+            activation = F.relu
+
+        overflow_cost = self.over_cost * activation(ending_inv - self.capacities)
+        lost_cost = self.lost_cost * activation(-ending_inv,)
         
         total_cost = overflow_cost + lost_cost #(B, S, max_cap +1)
         invalid_mask = self.targets > self.capacities

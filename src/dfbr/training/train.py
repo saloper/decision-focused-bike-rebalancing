@@ -20,8 +20,9 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
             
     return total_loss / len(dataloader)
 
-def evaluate(pred_model, cost_head, opt_model, dataloader, split):
+def evaluate(pred_model, cost_head, opt_model, dataloader, split, scaling):
     pred_model.eval()
+    cost_head.eval()
     total_samples = 0
     dates = []
     total_mse = []
@@ -42,16 +43,20 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split):
             w = w.view(-1, cost_head.num_stations, cost_head.max_cap +1)
             true_targets.append(torch.argmax(w, axis = 2))
 
-            #Get predictions and predicted cost function
-            yp = pred_model(x)
-            cp = cost_head(yp)
-            #Record predictions
-            pred_demand.append(yp)
+            #Get predictions
+            yp_scaled = pred_model(x)
 
             #Comute mse 
-            batch_mse = F.mse_loss(yp, y)
+            batch_mse = F.mse_loss(yp_scaled, y)
             total_mse.append(batch_mse.item())
             total_samples += x.shape[0]
+            yp_unscaled = (yp_scaled * scaling["y_std"]) + scaling["y_mean"]
+
+            #Record predictions
+            pred_demand.append(yp_unscaled)
+            
+            #Get costs
+            cp = cost_head(yp_unscaled)
 
             #Compute total cost
             for i in range(x.shape[0]):
@@ -67,7 +72,7 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split):
 
     #Reshape into dataframe
     df = pd.DataFrame({
-        'split' : 'train',
+        'split' : f'{split}',
         'date' : dates,
         'true_demand': torch.cat(true_demand, axis=0).tolist(),
         'true_targets': torch.cat(true_targets, axis=0).tolist(),

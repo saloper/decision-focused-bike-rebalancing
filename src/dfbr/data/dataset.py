@@ -21,6 +21,7 @@ class BikeDemandDataset(Dataset):
         
         #Transform demand into cost functions 
         costhead = CostHead(capacities, max_cap)
+        costhead.eval()
         self.c = costhead(self.y)
 
         self.dates = df.index.date #Store dates for later indexing
@@ -40,14 +41,16 @@ class BikeDemandDataset(Dataset):
                 #Scale targets
                 self.y_mean = torch.mean(self.y, dim = 0)
                 self.y_std = torch.std(self.y, dim = 0)
+                self.y_std[self.y_std == 0] = 1.0
             else:
                 self.mean = scaling_factor['mean']
                 self.std = scaling_factor['std']
                 self.y_mean = scaling_factor['y_mean']
                 self.y_std = scaling_factor['y_std']
 
-            # Apply the Z-score: (x - mu) / sigma to FEATURES ONLY
+            # Apply the Z-score: (x - mu) / sigma to features and demand targets
             self.X[:, self.scale_idx] = (self.X[:, self.scale_idx] - self.mean) / (self.std + 1e-8)
+            self.y = (self.y - self.y_mean) / (self.y_std + 1e-8)
 
     def __len__(self):
         return len(self.y)

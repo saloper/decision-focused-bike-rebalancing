@@ -186,6 +186,7 @@ class Sim:
                     #Get scaled features from dataset
                     x, y, _ = self.predict_ds[idx]
                     #Inference
+                    self.cost_head.eval()
                     self.predict_model.eval()
                     with torch.no_grad():
                         yp = self.predict_model(x.unsqueeze(0))
