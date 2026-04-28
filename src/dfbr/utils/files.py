@@ -4,6 +4,7 @@ Description: used to join absolute project root path with a relative path for ea
 Usage: from src.utils.files import get_path 
 """
 import yaml
+import logging
 from pathlib import Path
 
 #Go up to levels to get to the root of the project
@@ -24,3 +25,21 @@ def get_config(config_file):
                 config['paths'][key] = get_path(value)
                 
     return config
+
+def setup_logger(log_file):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Clear existing handlers
+    if logger.hasHandlers():
+        logger.handlers.clear()
+        
+    fh = logging.FileHandler(log_file)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    return logger

@@ -1,4 +1,4 @@
-from dfbr.utils.files import get_config, get_path
+from dfbr.utils.files import get_config, get_path, setup_logger
 from dfbr.data.dataset import BikeDemandDataset, BikeOptTargetsDataset
 from dfbr.models.station_targets import BikeStationTargets
 from dfbr.models.cost_head import CostHead
@@ -24,16 +24,23 @@ import pyepo
 #Read config
 config = get_config("baseline.yaml")
 
-#Get timestamp and create directory to hold data 
+#Get timestamp and create directory to hold data for run
 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-if config["training"]["decision_loss"]:
-    run_dir = get_path(f"experiments\\pogoh\\dfl\\{timestamp}\\")
-else:
-    run_dir = get_path(f"experiments\\pogoh\\mse\\{timestamp}\\")
-
+run_dir = get_path(f"experiments\\pogoh\\{config["experiment_name"]}\\{timestamp}")
 run_dir.mkdir(parents=True, exist_ok=True)
+
 #Make a copy of the configuration used
 shutil.copy(get_path("configs/baseline.yaml"), run_dir / "config.yaml")
+
+#Setup Logging
+logger = setup_logger(run_dir / "train.log")
+logger.info(f"Starting Experiment: {config["experiment_name"]}")
+logger.info(f"Run directory created at: {run_dir}")
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Load Datasets
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #Create a dictionary of stations
 station_dict = create_station_dict(config["paths"]["stations"], config["paths"]["station_dist_miles"], config["sim"]["start_inv_pct"])
@@ -44,9 +51,6 @@ num_stations = len(station_dict)
 capacities = [station_dict[sid].capacity for sid in station_ids]
 max_cap = max(capacities)
 
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-#Load Datasets
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Create datasets
 train_ds = BikeDemandDataset(
         file = config["paths"]["input"],
@@ -78,8 +82,8 @@ test_ds = BikeDemandDataset(
 #Solve for optimal values with ground truth data
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 opt_model = BikeStationTargets(num_stations=num_stations, max_cap=max_cap, total_inventory=int(sum(capacities) * config["sim"]["start_inv_pct"]))
-pyepo_train_ds = BikeOptTargetsDataset(opt_model, train_ds.X.numpy(), train_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), train_ds.y.numpy())
-pyepo_test_ds = BikeOptTargetsDataset(opt_model, test_ds.X.numpy(), test_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), test_ds.y.numpy())
+pyepo_train_ds = BikeOptTargetsDataset(opt_model, train_ds.X.numpy(), train_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), train_ds.y.numpy(), train_ds.dates)
+pyepo_test_ds = BikeOptTargetsDataset(opt_model, test_ds.X.numpy(), test_ds.c.view(-1, num_stations * (max_cap + 1)).numpy(), test_ds.y.numpy(), test_ds.dates)
 
 #Wrap Data Loaders
 train_dl = DataLoader(pyepo_train_ds, batch_size=config["training"]["batch_size"], shuffle=True)
@@ -103,7 +107,9 @@ optimizer = Adam(full_model.parameters(), lr=config["training"]["learning_rate"]
 spo = pyepo.func.SPOPlus(opt_model, processes=1)
 mse = nn.MSELoss()
 
-
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Training Loop
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 # #Warmstart 
 # #Training loop
@@ -127,7 +133,7 @@ for epoch in range(config["training"]["epochs"]):
 
     pred_model.train()
     #Training Loop
-    for x, c, w, z, y in train_dl:
+    for x, c, w, z, y, _ in train_dl:
         #Forward pass
         yp = pred_model(x)
         if config["training"]["decision_loss"]:
@@ -144,7 +150,7 @@ for epoch in range(config["training"]["epochs"]):
     
     #Test Loop
     with torch.no_grad():
-        for x, c, w, z, y in test_dl:
+        for x, c, w, z, y, _ in test_dl:
             #Forward pass
             yp = pred_model(x)
             if config["training"]["decision_loss"]:
@@ -155,21 +161,26 @@ for epoch in range(config["training"]["epochs"]):
 
             epoch_test_loss.append(loss.item())
 
-    print(f"Epoch {epoch+1} Train Loss: {(sum(epoch_train_loss) / len(epoch_train_loss)):.4f} Test Loss: {(sum(epoch_test_loss) / len(epoch_test_loss)):.4f}")
-    
+    logger.info(f"Epoch {epoch+1} Train Loss: {(sum(epoch_train_loss) / len(epoch_train_loss)):.4f} Test Loss: {(sum(epoch_test_loss) / len(epoch_test_loss)):.4f}")
+logger.info("Done training")
+
+logger.info("Starting evaluation")   
 train_mse, train_cost, opt_train_cost, train_df = evaluate(pred_model, cost_head, opt_model, train_dl, 'train')
 test_mse, test_cost, opt_test_cost, test_df = evaluate(pred_model, cost_head, opt_model, test_dl, 'test')
+logger.info(f"Final Stats:\nTrain MSE: {train_mse:.4f} Train Cost: {train_cost:.4f}, Optimal Train Cost: {opt_train_cost:.4f}\nTest MSE: {test_mse:.4f} Test Cost: {test_cost:.4f}, Optimal Test Cost: {opt_test_cost:.4f}")
+
 #Save data
 df = pd.concat([train_df, test_df], ignore_index=True)
+df = df.sort_values('date').reset_index(drop = True)
 df.to_parquet(run_dir / "results.parquet")
-
-print(f"Final Stats:\nTrain MSE: {train_mse:.4f} Train Cost: {train_cost:.4f}, Optimal Train Cost: {opt_train_cost:.4f}\nTest MSE: {test_mse:.4f} Test Cost: {test_cost:.4f}, Optimal Test Cost: {opt_test_cost:.4f}")
+logger.info(f"Data saved to: {run_dir / 'results.parquet'}")
 
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Run Simulation
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 #Simulation
 sim = Sim(
     station_dict= station_dict,
@@ -184,7 +195,9 @@ sim = Sim(
     cost_head=cost_head,
     opt_model = opt_model
 )
+logger.info("Starting simulation!")
 sim.run()
+logger.info("Starting complete!")
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 #Collect Metrics and Plot
@@ -197,29 +210,29 @@ df_metrics = pd.DataFrame({
     'Total Inventory' : sim.total_inventory,
     })
 
-print(f'System Metrics: \n{df_metrics.mean()}')
+logger.info(f'Simulation Metrics: \n{df_metrics.mean()}')
 
-axes = df_metrics.plot(
-    kind='line',
-    subplots=True, 
-    figsize=(12, 8), 
-    marker='o', 
-    alpha=0.8,
-    sharex=True
-    )
+# axes = df_metrics.plot(
+#     kind='line',
+#     subplots=True, 
+#     figsize=(12, 8), 
+#     marker='o', 
+#     alpha=0.8,
+#     sharex=True
+#     )
 
-plt.suptitle("System-Wide Daily Metrics", fontsize=14)
+# plt.suptitle("System-Wide Daily Metrics", fontsize=14)
 
-# Loop through each of the 3 axes to add gridlines and Y-labels
-for ax in axes:
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.set_ylabel("Events")
+# # Loop through each of the 3 axes to add gridlines and Y-labels
+# for ax in axes:
+#     ax.grid(True, linestyle='--', alpha=0.6)
+#     ax.set_ylabel("Events")
 
-# The X-label only needs to go on the bottom-most plot
-plt.xlabel("Date")
+# # The X-label only needs to go on the bottom-most plot
+# plt.xlabel("Date")
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 # #Plot heatmap of station data
 # #Extract the nested dictionaries from the station objects

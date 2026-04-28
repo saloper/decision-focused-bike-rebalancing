@@ -23,6 +23,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device):
 def evaluate(pred_model, cost_head, opt_model, dataloader, split):
     pred_model.eval()
     total_samples = 0
+    dates = []
     total_mse = []
     true_demand = []
     true_targets = []
@@ -33,15 +34,18 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split):
     real_obj = []
 
     with torch.no_grad():  
-        for x, c, w, z, y in dataloader:
+        for x, c, w, z, y, date in dataloader:
+            #Record the ground truth solutions
+            dates.extend(date)
             true_demand.append(y)
+            true_obj.append(z)
             w = w.view(-1, cost_head.num_stations, cost_head.max_cap +1)
             true_targets.append(torch.argmax(w, axis = 2))
-            true_obj.append(z)
 
             #Get predictions and predicted cost function
             yp = pred_model(x)
             cp = cost_head(yp)
+            #Record predictions
             pred_demand.append(yp)
 
             #Comute mse 
@@ -54,14 +58,17 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split):
                 opt_model.setObj(cp[i])
                 wp, zp = opt_model.solve()
                 real_cost = np.dot(wp,  c[i])
-                pred_obj.append(zp)
-                real_obj.append(real_cost)
                 #Get targets 
                 target = torch.tensor(wp).view(cost_head.num_stations, cost_head.max_cap +1)
+                #Record the predictions 
+                pred_obj.append(zp)
                 pred_targets.append(torch.argmax(target, axis = 1).tolist())
+                real_obj.append(real_cost)
 
+    #Reshape into dataframe
     df = pd.DataFrame({
-        'split' : f"{split}",
+        'split' : 'train',
+        'date' : dates,
         'true_demand': torch.cat(true_demand, axis=0).tolist(),
         'true_targets': torch.cat(true_targets, axis=0).tolist(),
         'true_obj': torch.cat(true_obj, axis=0).squeeze().tolist(), 

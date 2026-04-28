@@ -57,10 +57,11 @@ class BikeDemandDataset(Dataset):
     
 #PyEpo dataset to return optimized targets, costs, optimization, and objective value 
 class BikeOptTargetsDataset(optDataset):
-    def __init__(self, optmodel, features, costs, pred):
+    def __init__(self, optmodel, features, costs, pred, dates):
         super().__init__(optmodel, features, costs)
         self.pred = pred
-        
+        self.dates = dates 
+
     def __getitem__(self, idx):
         x, c, w, z = super().__getitem__(idx)
-        return x, c, w, z, self.pred[idx]
+        return x, c, w, z, self.pred[idx], str(self.dates[idx])

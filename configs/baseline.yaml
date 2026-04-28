@@ -1,5 +1,5 @@
 #Meta data 
-experiment_name: "Baseline POGOH Rebalancing"
+experiment_name: "linear_mse"
 
 paths:
   raw_trips: "data/raw/pogoh_trips.parquet"
@@ -18,7 +18,7 @@ training:
   batch_size: 32
   epochs: 50
   learning_rate: 1.0e-2
-  decision_loss: True
+  decision_loss: False
   weight_decay : 1.0e-3
 
 model:

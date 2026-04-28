@@ -160,7 +160,6 @@ class Sim:
             return total_moves
 
     def run(self):
-        print('Starting Simulation!')
         #Group into discrete days
         daily_groups = self.event_df.groupby(self.event_df['time'].dt.date)
 
@@ -232,5 +231,3 @@ class Sim:
             self.lost_demand[current_date] = sum(station.lost_demand[current_date] for station in self.stations.values())
             self.over_capacity[current_date] = sum(station.over_capacity[current_date] for station in self.stations.values())
             self.forced_returns[current_date] = sum(station.forced_returns[current_date] for station in self.stations.values())
-        
-        print('Simulation Complete!')
