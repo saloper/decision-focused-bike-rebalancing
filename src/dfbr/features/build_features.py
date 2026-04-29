@@ -52,7 +52,7 @@ def add_weather_forecast(df):
     params = {
         "latitude": 40.4406,
         "longitude": -79.9959,
-        "start_date": df.index.min().strftime('%Y-%m-%d'),
+        "start_date": '2018-01-01',
         "end_date": df.index.max().strftime('%Y-%m-%d'),
         "daily": [
             "apparent_temperature_mean",
@@ -66,7 +66,6 @@ def add_weather_forecast(df):
     #Make request and get data
     response = requests.get(url, params=params)
     data = response.json()
-
     
     weather_df = pd.DataFrame(data['daily'])
     weather_df['time'] = pd.to_datetime(weather_df['time']).dt.tz_localize('America/New_York', ambiguous=True)
@@ -81,21 +80,19 @@ def add_weather_forecast(df):
 #Main
 #--------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    config = get_config("baseline.yaml")
+    config = get_config("baseline_healthy_ride.yaml")
     
     #Read Raw Files
     trips = pd.read_parquet(config["paths"]["raw_trips"], engine='pyarrow')
     stations = pd.read_parquet(config["paths"]["stations"], engine='pyarrow')
     
     #Filter trips to normal
-    trips = trips[trips['Closed Status'] == 'NORMAL']
+    #trips = trips[trips['Closed Status'] == 'NORMAL']
 
     #Inner Join to filter out station id changes
-    trips['Start Station Name'] = trips['Start Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    trips['End Station Name'] = trips['End Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
     stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    filtered = pd.merge(trips, stations, left_on=['Start Station Id', 'Start Station Name'], right_on=['Id', 'Name'], how='inner')
-    filtered = pd.merge(filtered, stations, left_on=['End Station Id', 'End Station Name'], right_on=['Id', 'Name'], how='inner')
+    filtered = pd.merge(trips, stations, left_on=['Start Station Id'], right_on=['Id'], how='inner')
+    filtered = pd.merge(filtered, stations, left_on=['End Station Id'], right_on=['Id'], how='inner')
     
     #Calculate the net flow
     flow = calc_net_demand(filtered)

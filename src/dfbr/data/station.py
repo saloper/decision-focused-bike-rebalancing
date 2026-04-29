@@ -48,9 +48,10 @@ def get_driving_dist(data):
     response = response.json()
 
     if response.get("code") == "Ok":
-        distance_matrix_meters = np.array(response["distances"])
-        duration_matrix_seconds = np.array(response["durations"])
-        
+
+        distance_matrix_meters = np.array(response["distances"], dtype=float)
+        duration_matrix_seconds = np.array(response["durations"], dtype=float)
+
         #Convert to Miles and Minutes
         distance_matrix_miles = distance_matrix_meters * 0.000621371
         duration_matrix_minutes = duration_matrix_seconds / 60.0
@@ -84,8 +85,39 @@ def download_pogoh_station_data(station_file, dist_miles_file, dist_min_file):
 
     print(f'Success! Station data written to files.')
 
+def get_healthy_ride_stations(portal, name):
+    package = portal.action.package_show(id='healthyride-stations')
+    # Find the resource with that name
+    for resource in package['resources']:
+        if resource['name'] == name:
+            df = pd.read_csv(resource['url'])
+
+    #Rename columns to match
+    df.columns = ['Id','Name','Total Docks', 'Latitude', 'Longitude']
+    # Fix the negative latitude typo
+    df['Latitude'] = df['Latitude'].abs()
+    return df
+
+def download_healthy_ride_station_data(station_file, dist_miles_file, dist_min_file):
+    #Connect to WPRDC
+    wprdc = RemoteCKAN('https://data.wprdc.org')
+
+
+    #Get Station data
+    stations = get_healthy_ride_stations(wprdc, 'Stations 2021 Q1')
+    stations['Id'] = pd.to_numeric(stations['Id'], errors='coerce').astype('Int64')
+    stations['Name'] = stations['Name'].astype('category')
+    stations.to_parquet(get_path(station_file), index=False, engine='pyarrow')
+
+    #Get driving distance data
+    distance, duration = get_driving_dist(stations)
+    distance.to_parquet(get_path(dist_miles_file), index=True, engine='pyarrow')
+    duration.to_parquet(get_path(dist_min_file), index=True, engine='pyarrow')
+
+    print(f'Success! Station data written to files.')
 #--------------------------------------------------------------------------------------
 #Main
 #--------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    download_pogoh_station_data("data/raw/pogoh_stations.parquet", "data/raw/pogoh_station_dist_miles.parquet", "data/raw/pogoh_station_dist_min.parquet")
+    #download_pogoh_station_data("data/raw/pogoh_stations.parquet", "data/raw/pogoh_station_dist_miles.parquet", "data/raw/pogoh_station_dist_min.parquet")
+    download_healthy_ride_station_data("data/raw/healthy_ride_stations.parquet", "data/raw/healthy_ride_station_dist_miles.parquet", "data/raw/healthy_ride_station_dist_min.parquet")
