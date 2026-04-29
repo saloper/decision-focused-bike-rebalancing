@@ -1,5 +1,5 @@
 #Meta data 
-experiment_name: "linear_mse"
+experiment_name: "simple"
 
 paths:
   raw_trips: "data/raw/healthy_ride_trips.parquet"
@@ -16,8 +16,8 @@ data:
 
 training:
   batch_size: 32
-  epochs: 25
-  learning_rate: 1.0e-2
+  epochs: 1
+  learning_rate: 1.0e-3
   decision_loss: False
   weight_decay : 1.0e-3
 

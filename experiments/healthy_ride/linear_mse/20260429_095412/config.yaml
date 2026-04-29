@@ -16,8 +16,8 @@ data:
 
 training:
   batch_size: 32
-  epochs: 100
-  learning_rate: 1.0e-2
+  epochs: 50
+  learning_rate: 1.0e-3
   decision_loss: False
   weight_decay : 1.0e-3
 

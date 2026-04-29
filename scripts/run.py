@@ -111,7 +111,7 @@ def main():
     full_model = nn.Sequential(pred_model, cost_head)
 
     #Create optimizer
-    optimizer = Adam(full_model.parameters(), lr=config["training"]["learning_rate"])
+    optimizer = Adam(full_model.parameters(), lr=config["training"]["learning_rate"], weight_decay=config["training"]["weight_decay"])
     spo = pyepo.func.SPOPlus(opt_model, processes=4)
     mse = nn.MSELoss()
 

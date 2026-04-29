@@ -74,7 +74,7 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date, cut
     stations = pd.read_parquet(station_file_path, engine='pyarrow')
 
     #Filter trips to normal
-    trips = trips[trips['Closed Status'] == 'NORMAL']
+    #trips = trips[trips['Closed Status'] == 'NORMAL']
 
     #Filer to data range
     start_thresh = pd.to_datetime(start_date).tz_localize('America/New_York')
@@ -85,11 +85,11 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date, cut
     ]
 
     #Inner Join to filter out station id changes
-    trips['Start Station Name'] = trips['Start Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    trips['End Station Name'] = trips['End Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
-    filtered = pd.merge(trips, stations, left_on=['Start Station Id', 'Start Station Name'], right_on=['Id', 'Name'], how='inner')
-    filtered = pd.merge(filtered, stations, left_on=['End Station Id', 'End Station Name'], right_on=['Id', 'Name'], how='inner')
+    # trips['Start Station Name'] = trips['Start Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    # trips['End Station Name'] = trips['End Station Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    # stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
+    filtered = pd.merge(trips, stations, left_on=['Start Station Id'], right_on=['Id'], how='inner')
+    filtered = pd.merge(filtered, stations, left_on=['End Station Id'], right_on=['Id'], how='inner')
     filtered['trip_id'] = filtered.index
 
     #Extract Rents
