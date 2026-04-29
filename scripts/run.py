@@ -22,7 +22,7 @@ def main():
     #Parse command line
     #-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="baseline.yaml") 
+    parser.add_argument("--config", default="baseline_healthy_ride.yaml") 
     parser.add_argument("--sim", action="store_true", default=False) 
     args = parser.parse_args()
 
@@ -34,11 +34,11 @@ def main():
 
     #Get timestamp and create directory to hold data for run
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = get_path(f"experiments\\pogoh\\{config["experiment_name"]}\\{timestamp}")
+    run_dir = get_path(f"experiments\\healthy_ride\\{config["experiment_name"]}\\{timestamp}")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     #Make a copy of the configuration used
-    shutil.copy(get_path("configs/baseline.yaml"), run_dir / "config.yaml")
+    shutil.copy(get_path(f"configs/{args.config}"), run_dir / "config.yaml")
 
     #Setup Logging
     logger = setup_logger(run_dir / "train.log")

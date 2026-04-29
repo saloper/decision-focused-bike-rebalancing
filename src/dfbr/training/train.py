@@ -38,7 +38,7 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split, scaling):
         for x, c, w, z, y, date in dataloader:
             #Record the ground truth solutions
             dates.extend(date)
-            true_demand.append(y)
+            true_demand.append((y * scaling["y_std"]) + scaling["y_mean"])
             true_obj.append(z)
             w = w.view(-1, cost_head.num_stations, cost_head.max_cap +1)
             true_targets.append(torch.argmax(w, axis = 2))
