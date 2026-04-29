@@ -22,7 +22,7 @@ training:
   weight_decay : 1.0e-3
 
 model:
-  hidden_layers: [128]
+  hidden_layers: []
   loss_demand_cost: 1   
   over_capacity_cost: 1      
 

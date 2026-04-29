@@ -3,7 +3,7 @@ from dfbr.data.dataset import BikeDemandDataset, BikeOptTargetsDataset
 from dfbr.models.station_targets import BikeStationTargets
 from dfbr.models.cost_head import CostHead
 from dfbr.models.mlp import MLP
-from dfbr.eval.simmulation import Sim, create_station_dict, create_event_df
+from dfbr.eval.simulation import Sim, create_station_dict, create_event_df
 from dfbr.training.train import evaluate
 import datetime
 import argparse
@@ -202,14 +202,13 @@ def main():
             station_dict= station_dict,
             station_ids=station_ids,
             event_df = create_event_df(config["paths"]["raw_trips"], config["paths"]["stations"], config["data"]["test_start_date"],  config["data"]["test_end_date"], config["sim"]["cutoff_hour"]),
-            reset_inv = config["sim"]["reset_inv"],
-            reset_inv_pct = config["sim"]["start_inv_pct"],
             num_stations=num_stations,
             max_cap=max_cap,
             predict_ds = test_ds,
             predict_model = pred_model,
             cost_head=cost_head,
-            opt_model = opt_model
+            opt_model = opt_model,
+            scaling=training_stats
         )
         logger.info("Starting simulation!")
         sim.run()
