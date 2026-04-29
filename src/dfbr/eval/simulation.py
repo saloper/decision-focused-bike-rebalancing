@@ -4,11 +4,13 @@ import torch
 
 #Define a station object to keep track of inventory and handle constraints
 class Station:
-    def __init__(self, id, capacity, closest_station, inventory=0):
+    def __init__(self, id, capacity, closest_station, lat, long, inventory=0):
         self.id = id
         self.capacity = capacity
         self.closest_station = closest_station
         self.inventory = inventory
+        self.lat = lat
+        self.long = long
         #Dicts to track metrics overtime
         self.lost_demand = {}
         self.over_capacity = {}
@@ -54,7 +56,7 @@ def create_station_dict(station_file_path, dist_file_path, start_inv_pct):
         np.fill_diagonal(distance_data.values, np.inf)
         closest = distance_data.idxmin(axis=1)
         station_data['Closest Station'] = closest
-        station_data = station_data[['Total Docks', 'Closest Station']].to_dict('index')
+        station_data = station_data[['Total Docks', 'Latitude', 'Longitude', 'Closest Station']].to_dict('index')
         
         #Add Stations to simulation
         stations = {}
@@ -63,6 +65,8 @@ def create_station_dict(station_file_path, dist_file_path, start_inv_pct):
                 id=id,
                 capacity=data['Total Docks'],
                 closest_station=data['Closest Station'],
+                lat = data['Latitude'],
+                long = data['Longitude'],
                 inventory= int(data['Total Docks'] * start_inv_pct)
             )
         return stations

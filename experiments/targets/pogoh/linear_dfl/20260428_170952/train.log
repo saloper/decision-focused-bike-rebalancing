@@ -1,0 +1,45 @@
+2026-04-28 17:09:52,295 - INFO - Starting Experiment: linear_dfl
+2026-04-28 17:09:52,295 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\pogoh\linear_dfl\20260428_170952
+2026-04-28 17:09:52,441 - INFO - Set parameter Username
+2026-04-28 17:09:52,441 - INFO - Set parameter LicenseID to value 2774727
+2026-04-28 17:09:52,443 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
+2026-04-28 17:10:49,185 - INFO - Epoch 1 Train Loss: 106.6489 Test Loss: 131.2167
+2026-04-28 17:11:09,130 - INFO - Epoch 2 Train Loss: 93.9317 Test Loss: 125.6133
+2026-04-28 17:11:29,890 - INFO - Epoch 3 Train Loss: 88.6631 Test Loss: 122.4362
+2026-04-28 17:11:53,259 - INFO - Epoch 4 Train Loss: 84.9955 Test Loss: 120.2288
+2026-04-28 17:12:15,071 - INFO - Epoch 5 Train Loss: 83.5765 Test Loss: 118.9450
+2026-04-28 17:12:37,609 - INFO - Epoch 6 Train Loss: 82.5483 Test Loss: 117.7346
+2026-04-28 17:12:59,761 - INFO - Epoch 7 Train Loss: 82.3303 Test Loss: 116.8352
+2026-04-28 17:13:22,500 - INFO - Epoch 8 Train Loss: 81.4889 Test Loss: 116.4615
+2026-04-28 17:13:43,784 - INFO - Epoch 9 Train Loss: 80.8618 Test Loss: 116.0190
+2026-04-28 17:14:05,250 - INFO - Epoch 10 Train Loss: 80.7952 Test Loss: 115.6491
+2026-04-28 17:14:27,695 - INFO - Epoch 11 Train Loss: 80.1181 Test Loss: 115.3823
+2026-04-28 17:14:49,373 - INFO - Epoch 12 Train Loss: 80.4676 Test Loss: 115.2185
+2026-04-28 17:15:11,062 - INFO - Epoch 13 Train Loss: 80.2472 Test Loss: 114.9110
+2026-04-28 17:15:32,599 - INFO - Epoch 14 Train Loss: 80.5626 Test Loss: 114.6834
+2026-04-28 17:15:54,560 - INFO - Epoch 15 Train Loss: 80.1959 Test Loss: 114.4279
+2026-04-28 17:16:16,256 - INFO - Epoch 16 Train Loss: 81.6855 Test Loss: 114.3628
+2026-04-28 17:16:38,338 - INFO - Epoch 17 Train Loss: 80.0295 Test Loss: 114.2450
+2026-04-28 17:16:59,964 - INFO - Epoch 18 Train Loss: 79.6379 Test Loss: 114.1877
+2026-04-28 17:17:22,336 - INFO - Epoch 19 Train Loss: 80.1480 Test Loss: 114.2786
+2026-04-28 17:17:44,807 - INFO - Epoch 20 Train Loss: 80.8073 Test Loss: 114.3171
+2026-04-28 17:18:06,066 - INFO - Epoch 21 Train Loss: 80.7782 Test Loss: 114.0826
+2026-04-28 17:18:26,880 - INFO - Epoch 22 Train Loss: 79.2501 Test Loss: 114.0700
+2026-04-28 17:18:47,871 - INFO - Epoch 23 Train Loss: 78.9525 Test Loss: 114.1300
+2026-04-28 17:19:09,022 - INFO - Epoch 24 Train Loss: 80.7682 Test Loss: 113.9819
+2026-04-28 17:19:29,766 - INFO - Epoch 25 Train Loss: 79.5580 Test Loss: 113.8871
+2026-04-28 17:19:29,766 - INFO - Done training
+2026-04-28 17:19:29,766 - INFO - Starting evaluation
+2026-04-28 17:20:00,910 - INFO - Final Stats:
+Train MSE: 1.9017 Train Cost: 23.1021, Optimal Train Cost: 0.7688
+Test MSE: 3.6313 Test Cost: 34.5370, Optimal Test Cost: 2.8055
+2026-04-28 17:20:00,948 - INFO - Data saved to: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\pogoh\linear_dfl\20260428_170952\results.parquet
+2026-04-28 17:20:02,003 - INFO - Starting simulation!
+2026-04-28 17:20:18,375 - INFO - Starting complete!
+2026-04-28 17:20:18,385 - INFO - Simulation Metrics: 
+Lost Demand         99.567123
+Over Capacity       88.778082
+Forced Returns      44.547945
+Moved Bikes        315.504110
+Total Inventory    534.920548
+dtype: float64

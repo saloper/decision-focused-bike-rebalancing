@@ -1,0 +1,21 @@
+2026-04-29 10:57:01,287 - INFO - Starting Experiment: optimal
+2026-04-29 10:57:01,287 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\healthy_ride\optimal\20260429_105701
+2026-04-29 10:57:01,447 - INFO - Set parameter Username
+2026-04-29 10:57:01,447 - INFO - Set parameter LicenseID to value 2774727
+2026-04-29 10:57:01,447 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
+2026-04-29 10:58:07,779 - INFO - Epoch 1 Train Loss: 1.2507 Test Loss: 1.7367
+2026-04-29 10:58:07,779 - INFO - Done training
+2026-04-29 10:58:07,779 - INFO - Starting evaluation
+2026-04-29 10:59:13,182 - INFO - Final Stats:
+Train MSE: 1.2283 Train Cost: 21.5855, Optimal Train Cost: 0.1286
+Test MSE: 1.7367 Test Cost: 28.7781, Optimal Test Cost: 1.4877
+2026-04-29 10:59:13,227 - INFO - Data saved to: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\healthy_ride\optimal\20260429_105701\results.parquet
+2026-04-29 10:59:13,392 - INFO - Starting simulation!
+2026-04-29 10:59:34,571 - INFO - Starting complete!
+2026-04-29 10:59:34,575 - INFO - Simulation Metrics: 
+Lost Demand         37.367123
+Over Capacity        7.923288
+Forced Returns       1.347945
+Moved Bikes        329.221918
+Total Inventory    541.917808
+dtype: float64

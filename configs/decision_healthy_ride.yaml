@@ -16,6 +16,7 @@ data:
 
 training:
   batch_size: 32
+  warmup_epochs: 0
   epochs: 25
   learning_rate: 1.0e-2
   decision_loss: True
