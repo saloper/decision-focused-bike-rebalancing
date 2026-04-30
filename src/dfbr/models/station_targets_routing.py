@@ -35,6 +35,7 @@ class BikeStationTargetsRouting(optGrbModel):
     def _getModel(self):
         m = gp.Model()
         m.setParam('OutputFlag', 0) 
+        m.Params.Threads = 1
         
         # -----------------------------------------------------------------------
         # 1. Decision Variables

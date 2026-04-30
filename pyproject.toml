@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "decision-focused-bike-rebalancing"
 version = "0.1.0"
-description = "POGOH Bike Rebalancing Predictive and Optimization Models"
+description = "Bike Rebalancing Predictive and Optimization Models"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
@@ -17,6 +17,9 @@ dependencies = [
     "requests",
     "ckanapi",
     "gurobipy",
+    "pyepo",
+    "matplotlib",
+    "seaborn"
 ]
 
 [tool.setuptools.packages.find]

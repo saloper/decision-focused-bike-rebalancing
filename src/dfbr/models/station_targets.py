@@ -12,6 +12,8 @@ class BikeStationTargets(optGrbModel):
     def _getModel(self):
         #Create optmization model
         m = gp.Model()
+        m.setParam('OutputFlag', 0) 
+        m.Params.Threads = 1
         #Define decision variables
         x = m.addVars(self.num_stations * (self.max_cap + 1), name='x', vtype=GRB.BINARY) #Flatten vector of decisions for entire station, cost matrix
         #Set model objective
