@@ -32,3 +32,13 @@ Thumbs.db
 
 # Specific version/temp file found in root
 12.0.1
+
+#LaTeX Build Artifacts
+decision_focused_bike_rebalancing.aux
+decision_focused_bike_rebalancing.fdb_latexmk
+decision_focused_bike_rebalancing.fls
+decision_focused_bike_rebalancing.out
+decision_focused_bike_rebalancing.synctex.gz
+decision_focused_bike_rebalancing.log
+decision_focused_bike_rebalancing.bbl
+decision_focused_bike_rebalancing.blg
