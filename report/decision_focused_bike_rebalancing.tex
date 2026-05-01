@@ -44,6 +44,7 @@
 % to avoid loading the natbib package, add option nonatbib:
 %    \usepackage[nonatbib]{neurips_2026}
 
+\usepackage{amsmath}        % equation formattin
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
@@ -55,6 +56,8 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
 \usepackage{graphicx}       % graphics
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 
 % Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote. 
 \title{Explorations in Decision Focused Bike Rebalancing}
@@ -134,18 +137,26 @@ bike rebalancing \cite{liang2025rl}. While these RL based approaches have shown 
 leveraging the know structure of the problem (through the optimization model) while still allowing task aware learning.
 
 \section{Methods}
-In this section we describe our work in implementing DFL for bike rebalancing. This includes a description of the dataset, predictive models, optimization models, and a simulation environment for evaluation. After these are described, a summary of the completed experiments is provided.
+In this work, we assume that demand overnight is negligible and implement the simplest bike rebalancing approach: static overnight rebalancing. Specifically, we assume our model is running at midnight and predict the net demand (outflow - inflow) at each station. Then, these net demands are passed to 
+a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. Importantly, we baseline the results with the standard PTO approach before using the SPO+ loss to implement the 
+DFL approach. We evaluate the results with a discrete event based simulation across two historical bike sharing datasets. Details of each component are provided in the following sections.
 
-\subsection{Bike Sharing Dataset \& Features}
-To test our bike rebalancing methodology, we utilize historical data from the city of Pittsburgh. As shown in \cref{fig:total_rides}, Pittsburgh's bike sharing stations operated as Healthy Ride before being overhauled and renamed POGOH in early 2022. Due to this drastic change,
-we treat the two datasets as separate and implement our experiments for each. Pittsburgh's bike sharing data provides a rich testing ground for algorithmic improvements, as the diversity in elevation and weather results in highly chaotic demand patterns \textcolor{blue}{ToDo: Add citation}. To help predict demand,
-we rely on the features show in \cref{tab:features}.
+\subsection{Bike Sharing Dataset}
+We utilize historical bike sharing data from the city of Pittsburgh. As shown in \cref{fig:total_rides}, Pittsburgh's bike sharing stations operated as Healthy Ride before being overhauled and renamed POGOH in early 2022. Due to this drastic change,
+we treat the two datasets as separate and implement independent experiments for both. Pittsburgh's bike sharing data provides a rich testing ground for algorithmic improvements, as the diversity in elevation and weather results in highly asymmetric demand patterns \cite{kim2020pgh}.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.6\linewidth]{images/total_rides.pdf}
   \caption{Daily total trips, showing Pittsburgh's strong seasonality and change from POGOH infrastructure improvements.}
   \label{fig:total_rides}
 \end{figure}
+
+Notably, in late 2018, Healthy Ride more than doubled its stations from 50 to 105. Similarly, in July 2023, POGOH increased its station count from 42 to 60. Since, these changes had significant impacts on the intra-station demand dynamics, we ignore all data present before these periods. Additionally, given 
+the strong seasonality, we utilize an entire year for our test sets. So, for the Healthy Ride data we train with 2019-2020 and test on 2021. For POGOH, we train with August 2023-2024 and test on 2025.
+
+\subsection{Predictive Models  \& Features}
+In order to predict demand, we utilize a linear model $f: \mathbb{R}^7 \to \mathbb{R}^{|\mathcal{S}|}$, where $\mathcal{S}$ is the set of stations. These models use the features shown in \cref{tab:features} and are trained with weight-decay. We did experiment with more complicated models
+(e.g. MLPs) but, given the relatively small amount of data, struggled to achieve good generalization even with strong regularization.   
 
 \begin{table}[h]
 \centering
@@ -167,18 +178,100 @@ we rely on the features show in \cref{tab:features}.
 \end{tabular}
 \end{table}
 
-\subsection{Predictive Models}
-
-
-
-
 \subsection{Inventory Target Optimization Model}
+At the core of most bike rebalancing approaches is an optimization model. In our case, we utilize a MIP to minimize the expected costs of the ending inventory positions subject to current capacity and inventory constraints. Our original formulation is not amenable to DFL, so we reformulate the problem in way that allows 
+the use of the SPO+ surrogate loss function. Details are provided in the following sections.
+
 \subsubsection{Original Formulation}
-\subsubsection{SPO+ Formulation}
+Let $\mathcal{S}$ be the set of stations and $C_i, I_i, \hat{d}_i$ be the capacity, current inventory, and estimated net demand for station $i$, respectively. Additionally, let $c_l$ be the cost of lost demand and $c_o$ the cost of over capacity and $x_{ij}$ designate the amount of bikes to move from station $i$ to $j$. 
+Then, our original MIP is:
+\begin{align}
+\min \quad & \sum_{i \in \mathcal{S}} (c_l l_i + c_o o_i) \label{eq:orig_objective} \\
+\text{s.t.} \quad & I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} + l_i \geq \hat{d}i && \forall i \in \mathcal{S}\label{eq:orig_lost-demand} \\
+& I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} - \hat{d}_i - o_i \leq C_i && \forall i \in \mathcal{S} \label{eq:orig_over_cap} \\
+& I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} \leq C_i && \forall i \in \mathcal{S} \label{eq:orig_start_cap} \\
+& \sum_{j \in \mathcal{S}} x_{ij} \leq I_i && \forall i \in \mathcal{S} \label{eq:orig_start_inv} \\
+& l_i, o_i \geq 0, \quad x_{ij} \in \mathbb{Z}_{\geq 0} && \forall i, j \in \mathcal{S} \nonumber
+\end{align}
+
+In this formulation, we use slack variables $l_i$ and $o_i$ to track the amount of lost demand and over capacity that is expected, given our predicted demand and rebalancing decision. Our objective, \cref{eq:orig_objective}, is simply to minimize these total costs. In the constraints, \cref{eq:orig_lost-demand} calculates the lost demand, 
+\cref{eq:orig_over_cap} calculates the over capacity, \cref{eq:orig_start_cap} ensures a station is not rebalanced to more than its capacity, and \cref{eq:orig_start_inv} ensures a station does not send out more bikes than its current inventory. 
+
+This formulation, though intuitive, does not allow for straightforward DFL implementation. Since the decision variables are integers, applying differentiable optimization techniques \cite{amos2017optnet} is not possible. Moreover, because the predictions appear in the constraints and not in the objective, using the SPO+ loss function is also not possible \cite{elmachtoub2022spo}. 
+This formulation also has a feasible region that changes based on predictions and current inventories. However, the set of targets we can choose is always fixed between $0$ and a station's capacity. We make use of this fact and re-formulate the target optimization model as described in the following section.
+
+\subsubsection{SPO+ Friendly Formulation}
+In the original formulation, \cref{eq:orig_lost-demand} and \cref{eq:orig_over_cap} make applying DFL techniques difficult. However, these constraints only exist to calculate the expected costs from selecting a starting inventory level for a station. Since the feasible starting inventory levels for a station are always between $0$ and its capacity, these costs can be 
+pre-computed by enumerating all possible inventory levels. Specifically, let $c_{ij}$ denote the cost of setting station $i$ to inventory level $j$. Then, these costs can be pre-computed as: 
+\begin{equation}
+  c_{ij} = c_l \max(0, \hat{d}_i - j ) + c_o \max(0, j - \hat{d}_i - C_i) \quad \forall j \in \{0, 1, ..., C_i\} \label{eq:cost_head}
+\end{equation} 
+This operation, referred to as a cost head, can simply be repeated for each station to build a matrix of costs. Note, in practice all stations do not have the same capacity, so infeasible targets require masking to store in a matrix. After computing these costs, we let $y_{ij}$ denote a binary decision variable for setting station $i$ to level $j$. Then, the target optimization can be re-written 
+as an integer program (IP):
+\begin{align}
+\min \quad & \sum_{i \in \mathcal{S}} \sum\limits_{j=0}^{C_i} (c_{ij} y_{ij}) \label{eq:new_objective} \\
+\text{s.t.} \quad & \sum\limits_{j=0}^{C_i} y_{ij} = 1 && \forall i \in \mathcal{S} \label{eq:new_one_target} \\
+& \sum_{i \in \mathcal{S}} \sum\limits_{j=0}^{C_i} ~j~y_{ij}  = \mathcal{I} \label{eq:new_total_inv} \\
+& x_{ij} \in \{0, 1\} \quad \forall i \in \mathcal{S}, \forall j \in \{0, 1, ..., C_i\} \nonumber
+\end{align}
+where  $\mathcal{I} =$total inventory $= \sum_{i \in \mathcal{S}} I_i$. Notably, this reformulation expands the number of variables from $| \mathcal{S} |$ to $\mathcal{O}\left(\mathcal{S} C \right)$. However, in the case of our Pittsburgh bike sharing systems, this expansion is still a manageable few thousands variables.
+
+Importantly, this reformulation has several, nice properties. First, the computation of the cost inputs in \cref{eq:cost_head} can be done with ReLUs, maintaining the differentiability of the predictive model. Secondly, the feasible region of this reformulation is constant and only depends on the total inventory in the system and 
+the capacities of the stations. Finally, the objective is now a linear function of our predicted costs, enabling the use of SPO+ loss function. Using this reformulation, our end-to-end approach is visualized in \cref{fig:end_to_end_dfl}.
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        scale=0.8, transform shape, 
+        >=Stealth,
+        arrow/.style={->, thick},
+        label/.style={above, font=\small\sffamily}
+    ]
+
+    % Define spacing and dimensions for easy tweaking
+    \def\bw{1.8} 
+    \def\sx{4.0}  
+    \def\tx{8.0} 
+
+    %Input Arrow
+    \draw[arrow] (-1.8, 0) -- (0, 0) node[midway, label] {Features};
+
+    %Linear Model Block 
+    \filldraw[fill=orange, fill opacity=0.2, draw=orange, line width=1.2pt]
+        (0, -1.2) -- (0, 1.2) -- (\bw, 1.6) -- (\bw, -1.6) -- cycle;
+    \node[rotate=90, text=black, font=\sffamily\bfseries] at (\bw/2, 0) {Linear Model};
+
+    %Demand Arrow
+    \draw[arrow] (\bw, 0) -- (\sx, 0) node[midway, label] {Demand};
+
+    %Cost Head Block 
+    \filldraw[fill=cyan!70!blue, fill opacity=0.2, draw=cyan!70!blue, line width=1.2pt] 
+        (\sx, -1.6) -- (\sx, 1.6) -- (\sx+\bw, 1.2) -- (\sx+\bw, -1.2) -- cycle;
+    \node[rotate=90, text=black, font=\sffamily\bfseries] at (\sx+\bw/2, 0) {Cost Head};
+
+    %Costs Arrow
+    \draw[arrow] (\sx+\bw, 0) -- (\tx, 0) node[midway, label] {Costs};
+
+    %Integer Program Block 
+    \filldraw[fill=green!60!black, fill opacity=0.2, draw=green!60!black, line width=1.2pt] 
+        (\tx, -1.6) -- (\tx, 1.6) -- (\tx+\bw, 1.2) -- (\tx+\bw, -1.2) -- cycle;
+    \node[rotate=90, text=black, font=\sffamily\bfseries] at (\tx+\bw/2, 0) {Optimization};
+
+    %Targets Arrow
+    \draw[arrow] (\tx+\bw, 0) -- (\tx+\bw+1.8, 0) node[midway, label] {Targets};
+    \end{tikzpicture}
+
+    \caption{End-to-end architecture for decision-focused learning.}
+    \label{fig:end_to_end_dfl}
+\end{figure}
+
 \subsection{Simulation}
-\subsection{Experiments}
+
+\subsection{Implementation \& Experiments}
+
+\section{Results}
 
 \section{Discussion and Analysis}
+
 \section{Future Work}
 
 
