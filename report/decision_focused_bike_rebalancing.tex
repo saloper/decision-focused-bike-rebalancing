@@ -47,12 +47,14 @@
 \usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 \usepackage{hyperref}       % hyperlinks
+\usepackage{cleveref}       % nice in text refs 
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
+\usepackage{graphicx}       % graphics
 
 % Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote. 
 \title{Explorations in Decision Focused Bike Rebalancing}
@@ -132,6 +134,50 @@ bike rebalancing \cite{liang2025rl}. While these RL based approaches have shown 
 leveraging the know structure of the problem (through the optimization model) while still allowing task aware learning.
 
 \section{Methods}
+In this section we describe our work in implementing DFL for bike rebalancing. This includes a description of the dataset, predictive models, optimization models, and a simulation environment for evaluation. After these are described, a summary of the completed experiments is provided.
+
+\subsection{Bike Sharing Dataset \& Features}
+To test our bike rebalancing methodology, we utilize historical data from the city of Pittsburgh. As shown in \cref{fig:total_rides}, Pittsburgh's bike sharing stations operated as Healthy Ride before being overhauled and renamed POGOH in early 2022. Due to this drastic change,
+we treat the two datasets as separate and implement our experiments for each. Pittsburgh's bike sharing data provides a rich testing ground for algorithmic improvements, as the diversity in elevation and weather results in highly chaotic demand patterns \textcolor{blue}{ToDo: Add citation}. To help predict demand,
+we rely on the features show in \cref{tab:features}.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.6\linewidth]{images/total_rides.pdf}
+  \caption{Daily total trips, showing Pittsburgh's strong seasonality and change from POGOH infrastructure improvements.}
+  \label{fig:total_rides}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\caption{Summary of features utilized in the predictive model for station-level demand forecasting.}
+\label{tab:features}
+\begin{tabular}{lllc}
+\toprule
+\textbf{Category} & \textbf{Feature Name} & \textbf{Description} & \textbf{Format} \\
+\midrule
+\textbf{Temporal}
+& Day of Week   & Integer for the day of week (1,...,7)    & Cyclical encoding\\
+& Month of Year & Integer for the month of year (1,...,12) & Cyclical encoding \\
+\midrule
+\textbf{Weather} 
+& Temperature   & Average feels like temperature (C)  & Z-score \\
+& Precipitation & Total of all precipitation (mm)     & Log transform \\
+& Wind          & Average wind gust at 10m (km/h)     & Z-score \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Predictive Models}
+
+
+
+
+\subsection{Inventory Target Optimization Model}
+\subsubsection{Original Formulation}
+\subsubsection{SPO+ Formulation}
+\subsection{Simulation}
+\subsection{Experiments}
+
 \section{Discussion and Analysis}
 \section{Future Work}
 
