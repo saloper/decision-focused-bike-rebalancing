@@ -99,8 +99,8 @@
 
 \section{Introduction}
 
-In the last five years, the U.S. has experienced an explosion of docked bike sharing systems, growing total docks by 40\% to almost 10,000 \cite{bts2026bikeshare}. As these systems continue to grow, efficient
-operations remains a critical and difficult challenge.
+In the last five years, the U.S. has continued to invest in docked bike sharing systems, growing total docks by 40\% to a total of $\approx10,000$ \cite{bts2026bikeshare}. As these systems continue to mature, efficient
+operations remains a critical challenge.
 
 In docked bike sharing systems, stations with specific parking spots, or docks, are created for users to rent and return bikes. Importantly, each station has fixed capacity and must balance both the availability of bikes 
 for outgoing rentals and the availability of docks for incoming returns. As such, operators consistently engage in rebalancing, where bikes are strategically moved between stations. Nonetheless, determining exactly how a system should be rebalanced
@@ -114,8 +114,8 @@ However, recent work \cite{amos2017optnet, elmachtoub2022spo} has enabled predic
 promising results by better aligning machine learning models with downstream utility instead of upstream accuracy \cite{donti2017task}. 
 
 In this work, we explore the performance of the DFL approach in the context of bike rebalancing. Specifically, we solve for stations' target inventories by predicting net demand at each station and solving a mixed integer program (MIP).
-Importantly, we make use of the SPO+ surrogate loss to allow our predictive model to be trained end-to-end. We explore our approach's performance on historical bike share
-data from Pittsburgh (PoGoh and Healthy Ride). These datasets are particularly interesting, since Pittsburgh's distinct seasonality and topology create meaningful asymmetries in demand patterns.
+Importantly, we make use of the SPO+ surrogate loss to allow our predictive model to be trained end-to-end. We explore our approach's performance on historical bike sharing
+data from Pittsburgh (POGOH and Healthy Ride). These datasets are particularly interesting, since Pittsburgh's distinct seasonality and topology create meaningful asymmetries in demand patterns.
 
 In short, our work  finds \textcolor{blue}{add high-level findings}
 
@@ -136,10 +136,10 @@ has demonstrated techniques for application in combinatorial settings \cite{wild
 \paragraph{Learning-Based Bike Rebalancing.}
 Recent work has started exploring applications of machine learning in bike rebalancing. Most naturally are efforts to improve demand forecasting through more sophisticated modeling \cite{hulot2018forecasting}. However, many have also started exploring reinforcement learning (RL) for solving 
 bike rebalancing \cite{liang2025rl}. While these RL based approaches have shown promising results, they require the development of simulation environments and extensive computation to facilitate learning. Although DFL remains largely unexplored for bike rebalancing, it may offer a good balance of 
-leveraging the know structure of the problem (through the optimization model) while still allowing task aware learning.
+leveraging the known structure of the problem (through the optimization model) while still allowing task aware learning.
 
 \section{Methods}
-In this work, we implement the simplest bike rebalancing approach, static overnight rebalancing. Specifically, we assume that demand overnight is negligible and that our rebalancing process runs at midnight to allow for bikes to be moved before demand starts occurring. Our process starts by predicting the net demand (outflow - inflow) at each station. Then, these net demands are passed to 
+In this work, we implement the simplest bike rebalancing approach, static overnight rebalancing. Specifically, we assume that demand overnight is negligible and that our rebalancing process runs at midnight. Our process starts by predicting the net demand (outflow - inflow) at each station. Then, these net demands are passed to 
 a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. As a baseline this approach is implemented by training the predictive model independently with mean squared error (MSE). Then, a decision focused version is implemented using the SPO+ loss. We evaluate results by comparing objective values under our static rebalancing assumption and through a discrete event-based simulation. 
 Details of each component are provided in the following sections.
 
@@ -261,9 +261,11 @@ the capacities of the stations. Finally, the objective is now a linear function 
     \draw[arrow] (\tx+\bw, 0) -- (\tx+\bw+1.8, 0) node[midway, label] {Targets};
     \end{tikzpicture}
 
-    \caption{End-to-end architecture for decision-focused learning.}
+    \caption{End-to-end architecture for decision-focused bike rebalancing.}
     \label{fig:end_to_end_dfl}
 \end{figure}
+
+\subsubsection{SPO+ Routing Formulation}
 
 \subsection{Simulation}
 In addition to evaluating the DFL approach under static rebalancing assumptions (the objective value of the optimization model), we also implement a discrete event-based simulation. Since the simulation is dynamic, it is more realistic and provides insights into
@@ -284,20 +286,26 @@ For each of our bike sharing datasets, we conducted the following experiments:
 \begin{enumerate}
     \item \textbf{Do Nothing:} As the name suggests, no rebalancing is done. This provides a lower bound for any acceptable rebalancing performance. 
     \item \textbf{Naive Capacity:} Bikes are rebalanced proportional to each station's capacity. In the case of fractional bikes, rounding is randomized between stations.
-    \item \textbf{Optimal:} Bikes are rebalanced using the approach in \cref{fig:end_to_end_dfl}, but ground truth demand predictions are used. This provides an upper bound on the performance of our approach.
+    \item \textbf{Optimal:} Bikes are rebalanced using the approach in \cref{fig:end_to_end_dfl}, but ground truth demand predictions are used. This provides an upper bound on the performance of our static rebalancing approach.
     \item \textbf{Linear MSE Loss:} Demand predictions are trained independently using MSE before executing the approach in \cref{fig:end_to_end_dfl}.
     \item \textbf{Linear SPO+ Loss:} The full implementation of \cref{fig:end_to_end_dfl}, where demand predictions are trained end-to-end using SPO+.
 \end{enumerate}
 
-Notably, these experiments were completed using data from all hours of the day. However, many bike sharing systems face huge morning rushes followed by  huge evening commutes. In our static rebalancing, these demands cancel each other out. 
+For simplicity, all experiments were completed with $c_l = 1$ and $c_o = 1$ after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
+
+Notably, these experiments were completed using data from all hours of the day. However, many bike sharing systems face morning rushes followed by evening commutes. In our static rebalancing, these demands cancel each other out. 
 So, we also completed these experiments focused on solving the morning rush with data only from midnight to noon. This variant will be referred to as the 12hr. 
 
 \section{Results}
 
-\section{Discussion and Analysis}
+\section{Discussion}
 
 \section{Future Work}
-
+\begin{itemize}
+    \item Datasets
+    \item Scalability
+    \item Robustness
+\end{itemize}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%References%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

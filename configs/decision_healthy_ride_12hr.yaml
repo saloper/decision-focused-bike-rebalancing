@@ -1,12 +1,12 @@
 #Meta data 
-experiment_name: "simple"
+experiment_name: "linear_dfl_12hr"
 
 paths:
   raw_trips: "data/raw/healthy_ride_trips.parquet"
   stations: "data/raw/healthy_ride_stations.parquet"
   station_dist_miles: "data/raw/healthy_ride_station_dist_miles.parquet"
   station_dist_min: "data/raw/healthy_ride_station_dist_min.parquet"
-  input: "data/processed/healthy_ride_input.parquet"
+  input: "data/processed/healthy_ride_input_12hr.parquet"
 
 data:
   train_start_date: '2019-01-01' #Start and End dates are inclusive
@@ -17,9 +17,9 @@ data:
 training:
   batch_size: 32
   warmup_epochs: 0
-  epochs: 1
-  learning_rate: 1.0e-3
-  decision_loss: False
+  epochs: 25
+  learning_rate: 5.0e-3
+  decision_loss: True
   weight_decay : 1.0e-3
 
 model:
@@ -29,5 +29,5 @@ model:
 
 sim:
   start_inv_pct: 0.5
-  cutoff_hour: 24
+  cutoff_hour: 12
   reset_inv: True

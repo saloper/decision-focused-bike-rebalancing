@@ -1,0 +1,21 @@
+2026-05-02 14:16:24,773 - INFO - Starting Experiment: optimal_12hr
+2026-05-02 14:16:24,773 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\pogoh\optimal_12hr\20260502_141624
+2026-05-02 14:16:24,936 - INFO - Set parameter Username
+2026-05-02 14:16:24,937 - INFO - Set parameter LicenseID to value 2774727
+2026-05-02 14:16:24,938 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
+2026-05-02 14:17:25,165 - INFO - Epoch 1 Train Loss: 1.2723 Test Loss: 1.8113
+2026-05-02 14:17:25,165 - INFO - Done training
+2026-05-02 14:17:25,166 - INFO - Starting evaluation
+2026-05-02 14:18:28,830 - INFO - Final Stats:
+Train MSE: 1.2486 Train Cost: 8.4063, Optimal Train Cost: 0.0205
+Test MSE: 1.8113 Test Cost: 11.5123, Optimal Test Cost: 0.4082
+2026-05-02 14:18:28,888 - INFO - Data saved to: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\pogoh\optimal_12hr\20260502_141624\results.parquet
+2026-05-02 14:18:29,010 - INFO - Starting simulation!
+2026-05-02 14:18:49,349 - INFO - Starting complete!
+2026-05-02 14:18:49,353 - INFO - Simulation Metrics: 
+Lost Demand          9.024658
+Over Capacity        1.227397
+Forced Returns       0.115068
+Moved Bikes        309.830137
+Total Inventory    533.178082
+dtype: float64

@@ -1,0 +1,21 @@
+2026-05-02 15:24:28,385 - INFO - Starting Experiment: simple_12hr
+2026-05-02 15:24:28,385 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\healthy_ride\simple_12hr\20260502_152428
+2026-05-02 15:24:29,553 - INFO - Set parameter Username
+2026-05-02 15:24:29,553 - INFO - Set parameter LicenseID to value 2774727
+2026-05-02 15:24:29,555 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
+2026-05-02 15:25:25,651 - INFO - Epoch 1 Train Loss: 1.2848 Test Loss: 1.8302
+2026-05-02 15:25:25,651 - INFO - Done training
+2026-05-02 15:25:25,651 - INFO - Starting evaluation
+2026-05-02 15:26:29,844 - INFO - Final Stats:
+Train MSE: 39.1197 Train Cost: 0.6676, Optimal Train Cost: 0.0205
+Test MSE: 39.7385 Test Cost: 2.6603, Optimal Test Cost: 0.4082
+2026-05-02 15:26:29,893 - INFO - Data saved to: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\healthy_ride\simple_12hr\20260502_152428\results.parquet
+2026-05-02 15:26:30,017 - INFO - Starting simulation!
+2026-05-02 15:26:51,228 - INFO - Starting complete!
+2026-05-02 15:26:51,229 - INFO - Simulation Metrics: 
+Lost Demand          1.750685
+Over Capacity        1.473973
+Forced Returns       0.134247
+Moved Bikes         59.753425
+Total Inventory    531.841096
+dtype: float64

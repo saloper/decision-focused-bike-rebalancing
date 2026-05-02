@@ -80,7 +80,7 @@ def add_weather_forecast(df):
 #Main
 #--------------------------------------------------------------------------------------
 if __name__ == '__main__':
-    config = get_config("baseline_healthy_ride.yaml")
+    config = get_config("mse_healthy_ride_12hr.yaml")
     
     #Read Raw Files
     trips = pd.read_parquet(config["paths"]["raw_trips"], engine='pyarrow')
@@ -93,6 +93,9 @@ if __name__ == '__main__':
     stations['Name'] = stations['Name'].str.lower().str.replace(' and ', ' & ', regex=False)
     filtered = pd.merge(trips, stations, left_on=['Start Station Id'], right_on=['Id'], how='inner')
     filtered = pd.merge(filtered, stations, left_on=['End Station Id'], right_on=['Id'], how='inner')
+    
+    #Filter to first 12 hours of the day
+    filtered = filtered[filtered['Start Date'].dt.hour < 12]
     
     #Calculate the net flow
     flow = calc_net_demand(filtered)

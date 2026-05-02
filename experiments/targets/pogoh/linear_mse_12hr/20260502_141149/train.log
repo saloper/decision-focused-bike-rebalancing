@@ -1,0 +1,70 @@
+2026-05-02 14:11:49,131 - INFO - Starting Experiment: linear_mse_12hr
+2026-05-02 14:11:49,131 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\pogoh\linear_mse_12hr\20260502_141149
+2026-05-02 14:11:49,279 - INFO - Set parameter Username
+2026-05-02 14:11:49,279 - INFO - Set parameter LicenseID to value 2774727
+2026-05-02 14:11:49,280 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
+2026-05-02 14:12:21,659 - INFO - Epoch 1 Train Loss: 1.1671 Test Loss: 1.5593
+2026-05-02 14:12:21,745 - INFO - Epoch 2 Train Loss: 0.9591 Test Loss: 1.4842
+2026-05-02 14:12:21,821 - INFO - Epoch 3 Train Loss: 0.8903 Test Loss: 1.4602
+2026-05-02 14:12:21,880 - INFO - Epoch 4 Train Loss: 0.8863 Test Loss: 1.4514
+2026-05-02 14:12:21,938 - INFO - Epoch 5 Train Loss: 0.8814 Test Loss: 1.4479
+2026-05-02 14:12:21,997 - INFO - Epoch 6 Train Loss: 0.8622 Test Loss: 1.4425
+2026-05-02 14:12:22,056 - INFO - Epoch 7 Train Loss: 0.8600 Test Loss: 1.4416
+2026-05-02 14:12:22,115 - INFO - Epoch 8 Train Loss: 0.8770 Test Loss: 1.4438
+2026-05-02 14:12:22,173 - INFO - Epoch 9 Train Loss: 0.8790 Test Loss: 1.4385
+2026-05-02 14:12:22,253 - INFO - Epoch 10 Train Loss: 0.8612 Test Loss: 1.4430
+2026-05-02 14:12:22,343 - INFO - Epoch 11 Train Loss: 0.8588 Test Loss: 1.4403
+2026-05-02 14:12:22,432 - INFO - Epoch 12 Train Loss: 0.8840 Test Loss: 1.4453
+2026-05-02 14:12:22,511 - INFO - Epoch 13 Train Loss: 0.8755 Test Loss: 1.4455
+2026-05-02 14:12:22,593 - INFO - Epoch 14 Train Loss: 0.8623 Test Loss: 1.4411
+2026-05-02 14:12:22,669 - INFO - Epoch 15 Train Loss: 0.8683 Test Loss: 1.4442
+2026-05-02 14:12:22,879 - INFO - Epoch 16 Train Loss: 0.8796 Test Loss: 1.4458
+2026-05-02 14:12:22,969 - INFO - Epoch 17 Train Loss: 0.8815 Test Loss: 1.4447
+2026-05-02 14:12:23,045 - INFO - Epoch 18 Train Loss: 0.8750 Test Loss: 1.4431
+2026-05-02 14:12:23,115 - INFO - Epoch 19 Train Loss: 0.8588 Test Loss: 1.4407
+2026-05-02 14:12:23,181 - INFO - Epoch 20 Train Loss: 0.8749 Test Loss: 1.4413
+2026-05-02 14:12:23,254 - INFO - Epoch 21 Train Loss: 0.8707 Test Loss: 1.4466
+2026-05-02 14:12:23,320 - INFO - Epoch 22 Train Loss: 0.8686 Test Loss: 1.4405
+2026-05-02 14:12:23,392 - INFO - Epoch 23 Train Loss: 0.8708 Test Loss: 1.4386
+2026-05-02 14:12:23,458 - INFO - Epoch 24 Train Loss: 0.8529 Test Loss: 1.4432
+2026-05-02 14:12:23,520 - INFO - Epoch 25 Train Loss: 0.8635 Test Loss: 1.4451
+2026-05-02 14:12:23,585 - INFO - Epoch 26 Train Loss: 0.8742 Test Loss: 1.4431
+2026-05-02 14:12:23,646 - INFO - Epoch 27 Train Loss: 0.8859 Test Loss: 1.4428
+2026-05-02 14:12:23,709 - INFO - Epoch 28 Train Loss: 0.8651 Test Loss: 1.4389
+2026-05-02 14:12:23,770 - INFO - Epoch 29 Train Loss: 0.8569 Test Loss: 1.4474
+2026-05-02 14:12:23,828 - INFO - Epoch 30 Train Loss: 0.8594 Test Loss: 1.4467
+2026-05-02 14:12:23,884 - INFO - Epoch 31 Train Loss: 0.8832 Test Loss: 1.4448
+2026-05-02 14:12:23,943 - INFO - Epoch 32 Train Loss: 0.8673 Test Loss: 1.4361
+2026-05-02 14:12:24,003 - INFO - Epoch 33 Train Loss: 0.8539 Test Loss: 1.4427
+2026-05-02 14:12:24,074 - INFO - Epoch 34 Train Loss: 0.8624 Test Loss: 1.4440
+2026-05-02 14:12:24,146 - INFO - Epoch 35 Train Loss: 0.8552 Test Loss: 1.4410
+2026-05-02 14:12:24,217 - INFO - Epoch 36 Train Loss: 0.8714 Test Loss: 1.4447
+2026-05-02 14:12:24,292 - INFO - Epoch 37 Train Loss: 0.8637 Test Loss: 1.4414
+2026-05-02 14:12:24,369 - INFO - Epoch 38 Train Loss: 0.8675 Test Loss: 1.4400
+2026-05-02 14:12:24,459 - INFO - Epoch 39 Train Loss: 0.8637 Test Loss: 1.4441
+2026-05-02 14:12:24,534 - INFO - Epoch 40 Train Loss: 0.8734 Test Loss: 1.4438
+2026-05-02 14:12:24,619 - INFO - Epoch 41 Train Loss: 0.8546 Test Loss: 1.4464
+2026-05-02 14:12:24,729 - INFO - Epoch 42 Train Loss: 0.8700 Test Loss: 1.4398
+2026-05-02 14:12:24,822 - INFO - Epoch 43 Train Loss: 0.8762 Test Loss: 1.4444
+2026-05-02 14:12:24,899 - INFO - Epoch 44 Train Loss: 0.8624 Test Loss: 1.4422
+2026-05-02 14:12:24,974 - INFO - Epoch 45 Train Loss: 0.8563 Test Loss: 1.4372
+2026-05-02 14:12:25,050 - INFO - Epoch 46 Train Loss: 0.8805 Test Loss: 1.4395
+2026-05-02 14:12:25,113 - INFO - Epoch 47 Train Loss: 0.8590 Test Loss: 1.4469
+2026-05-02 14:12:25,211 - INFO - Epoch 48 Train Loss: 0.8629 Test Loss: 1.4429
+2026-05-02 14:12:25,296 - INFO - Epoch 49 Train Loss: 0.8587 Test Loss: 1.4441
+2026-05-02 14:12:25,389 - INFO - Epoch 50 Train Loss: 0.8582 Test Loss: 1.4488
+2026-05-02 14:12:25,389 - INFO - Done training
+2026-05-02 14:12:25,389 - INFO - Starting evaluation
+2026-05-02 14:12:55,898 - INFO - Final Stats:
+Train MSE: 0.8613 Train Cost: 20.8304, Optimal Train Cost: 5.3603
+Test MSE: 1.4488 Test Cost: 38.2795, Optimal Test Cost: 14.8027
+2026-05-02 14:12:55,929 - INFO - Data saved to: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\pogoh\linear_mse_12hr\20260502_141149\results.parquet
+2026-05-02 14:12:56,358 - INFO - Starting simulation!
+2026-05-02 14:13:09,060 - INFO - Starting complete!
+2026-05-02 14:13:09,064 - INFO - Simulation Metrics: 
+Lost Demand         37.684932
+Over Capacity       25.260274
+Forced Returns      11.608219
+Moved Bikes        340.857534
+Total Inventory    517.693151
+dtype: float64

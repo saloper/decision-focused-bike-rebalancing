@@ -95,6 +95,9 @@ def create_event_df(trip_file_path, station_file_path, start_date, end_date, cut
     filtered = pd.merge(trips, stations, left_on=['Start Station Id'], right_on=['Id'], how='inner')
     filtered = pd.merge(filtered, stations, left_on=['End Station Id'], right_on=['Id'], how='inner')
     filtered['trip_id'] = filtered.index
+    
+    #filter to cutoff hour
+    filtered = filtered[filtered['Start Date'].dt.hour < cutoff_hour]
 
     #Extract Rents
     rents = filtered[['Start Date', 'Start Station Id', 'trip_id']].copy()
