@@ -38,23 +38,21 @@ def evaluate(pred_model, cost_head, opt_model, dataloader, split, scaling):
         for x, c, w, z, y, date in dataloader:
             #Record the ground truth solutions
             dates.extend(date)
-            true_demand.append((y * scaling["y_std"]) + scaling["y_mean"])
+            y_unscaled = (y * scaling["y_std"]) + scaling["y_mean"]
+            true_demand.append(y_unscaled)
             true_obj.append(z)
             w = w.view(-1, cost_head.num_stations, cost_head.max_cap +1)
             true_targets.append(torch.argmax(w, axis = 2))
 
             #Get predictions
             yp_scaled = pred_model(x)
-
-            #Comute mse 
-            batch_mse = F.mse_loss(yp_scaled, y)
-            total_mse.append(batch_mse.item())
-            total_samples += x.shape[0]
             yp_unscaled = (yp_scaled * scaling["y_std"]) + scaling["y_mean"]
-
             #Record predictions
             pred_demand.append(yp_unscaled)
-            
+            #Comute mse 
+            total_samples += x.shape[0]
+            batch_mse = F.mse_loss(yp_unscaled, y_unscaled)
+            total_mse.append(batch_mse.item())
             #Get costs
             cp = cost_head(yp_unscaled)
 

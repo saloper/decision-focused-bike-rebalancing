@@ -1,5 +1,5 @@
 #Meta data 
-experiment_name: "linear_mse"
+experiment_name: "linear_dfl"
 
 paths:
   raw_trips: "data/raw/healthy_ride_trips.parquet"
@@ -18,8 +18,8 @@ training:
   batch_size: 32
   warmup_epochs: 0
   epochs: 25
-  learning_rate: 1.0e-3
-  decision_loss: False
+  learning_rate: 1.0e-2
+  decision_loss: True
   weight_decay : 1.0e-3
 
 model:

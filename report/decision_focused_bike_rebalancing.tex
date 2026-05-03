@@ -53,6 +53,7 @@
 \usepackage{cleveref}       % nice in text refs 
 \usepackage{url}            % simple URL typesetting
 \usepackage{booktabs}       % professional-quality tables
+\usepackage{multirow}       % multi-row tables
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
@@ -266,6 +267,8 @@ the capacities of the stations. Finally, the objective is now a linear function 
 \end{figure}
 
 \subsubsection{SPO+ Routing Formulation}
+We did attempt to extend the SPO+ friendly formulation to include vehicle routing. Specifically, the objective remained the same, but the chosen targets were constrained by a total routing time of 240 minutes utilizing the Miles-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computational intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
+the joint targets and routing model. A potential middle-ground may be approximating routing costs as a network flow problem. Regardless, the scope of this work is limited to the targets formulation.
 
 \subsection{Simulation}
 In addition to evaluating the DFL approach under static rebalancing assumptions (the objective value of the optimization model), we also implement a discrete event-based simulation. Since the simulation is dynamic, it is more realistic and provides insights into
@@ -293,11 +296,53 @@ For each of our bike sharing datasets, we conducted the following experiments:
 
 For simplicity, all experiments were completed with $c_l = 1$ and $c_o = 1$ after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
 
-Notably, these experiments were completed using data from all hours of the day. However, many bike sharing systems face morning rushes followed by evening commutes. In our static rebalancing, these demands cancel each other out. 
+Notably, these experiments were initially completed using data from all hours of the day. However, many bike sharing systems face morning rushes followed by evening commutes. In our aggregation of net demand, these may cancel each other out. 
 So, we also completed these experiments focused on solving the morning rush with data only from midnight to noon. This variant will be referred to as the 12hr. 
 
 \section{Results}
 
+\begin{table}[ht]
+  \centering
+  \caption{DFL fails to make significant improvements across 12-hour and 24-hour horizons and datasets.}
+  \label{tab:optimization_results}
+  \begin{tabular}{llrrrrr}
+    \toprule
+    & & \multicolumn{4}{c}{\textbf{Optimization}} & \textbf{Simulation} \\
+    \cmidrule(lr){3-6} \cmidrule(lr){7-7}
+    & & \multicolumn{2}{c}{\textbf{Train}} & \multicolumn{2}{c}{\textbf{Test}} & \\
+    \cmidrule(lr){3-4} \cmidrule(lr){5-6}
+    \textbf{Dataset} & \textbf{Model} & \textbf{MSE} & \textbf{Cost (\$)} & \textbf{MSE} & \textbf{Cost (\$)} & \textbf{Cost (\$)} \\
+    \midrule
+    \multicolumn{7}{c}{\textbf{24 Hour Horizon}} \\
+    \midrule
+    \multirow{4}{*}{POGOH} 
+    & Optimal             & 0.00           & 0.77           & 3.63           & 2.81           & 163.91 \\
+    & Naïve 50\% Capacity & -              & 8.21           & -              & 16.04          & 141.04 \\
+    & Linear (MSE Loss)   & \textbf{0.97}  & 23.13          & \textbf{2.69}  & 36.60          & 197.26 \\
+    & Linear (SPO+ Loss)  & 1.90           & \textbf{23.10} & 3.63           & \textbf{34.54} & \textbf{188.35} \\
+    \midrule
+    \multirow{4}{*}{Healthy Ride} 
+    & Optimal             & 0.00           & 0.13           & 0.00           & 1.49           & 45.29 \\
+    & Naïve 50\% Capacity & -              & 2.91           & -              & 7.40           & 19.40 \\
+    & Linear (MSE Loss)   & \textbf{2.60}  & \textbf{19.23} & \textbf{3.60}  & \textbf{27.01} & \textbf{66.48} \\
+    & Linear (SPO+ Loss)  & 1.82           & 26.64          & 2.32           & 35.12          & 81.12 \\
+    \midrule
+    \multicolumn{7}{c}{\textbf{12 Hour Horizon}} \\
+    \midrule
+    \multirow{4}{*}{POGOH} 
+    & Optimal             & 0.00           & 5.36           & 0.00           & 14.80          & 47.52 \\
+    & Naïve 50\% Capacity & -              & 32.27          & -              & 46.38          & 63.46 \\
+    & Linear (MSE Loss)   & \textbf{0.86}  & \textbf{20.83} & \textbf{1.45}  & \textbf{38.30} & \textbf{62.94} \\
+    & Linear (SPO+ Loss)  & 1.39           & 22.27          & 2.09           & 39.58          & 64.77 \\
+    \midrule
+    \multirow{4}{*}{Healthy Ride} 
+    & Optimal             & 0.00           & 0.02           & 0.00           & 0.41           & 10.25 \\
+    & Naïve 50\% Capacity & -              & 0.67           & -              & 2.66           & 3.22  \\
+    & Linear (MSE Loss)   & \textbf{0.98}  & \textbf{7.36}  & \textbf{1.43}  & \textbf{10.93} & \textbf{18.06} \\
+    & Linear (SPO+ Loss)  & 2.69           & 12.06          & 3.20           & 16.15          & 25.76 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 \section{Discussion}
 
 \section{Future Work}
