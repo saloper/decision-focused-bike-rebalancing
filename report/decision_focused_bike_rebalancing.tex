@@ -59,6 +59,7 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
 \usepackage{graphicx}       % graphics
+\usepackage{subcaption}     % sub-figures    
 \usepackage{tikz}           % nice figures
 \usetikzlibrary{arrows.meta}
 
@@ -118,7 +119,7 @@ In this work, we explore the performance of the DFL approach in the context of b
 Importantly, we make use of the SPO+ surrogate loss to allow our predictive model to be trained end-to-end. We explore our approach's performance on historical bike sharing
 data from Pittsburgh (POGOH and Healthy Ride). These datasets are particularly interesting, since Pittsburgh's distinct seasonality and topology create meaningful asymmetries in demand patterns.
 
-In short, our work  finds \textcolor{blue}{add high-level findings}
+In short, our work finds that decision loss is outperformed by traditional mean squared error (MSE) in three of four experiments and is unable to achieve meaningful improvements in bike rebalancing. 
 
 \section{Related Work}
 
@@ -141,7 +142,7 @@ leveraging the known structure of the problem (through the optimization model) w
 
 \section{Methods}
 In this work, we implement the simplest bike rebalancing approach, static overnight rebalancing. Specifically, we assume that demand overnight is negligible and that our rebalancing process runs at midnight. Our process starts by predicting the net demand (outflow - inflow) at each station. Then, these net demands are passed to 
-a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. As a baseline this approach is implemented by training the predictive model independently with mean squared error (MSE). Then, a decision focused version is implemented using the SPO+ loss. We evaluate results by comparing objective values under our static rebalancing assumption and through a discrete event-based simulation. 
+a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. As a baseline this approach is implemented by training the predictive model independently with MSE. Then, a decision focused version is implemented using the SPO+ loss. We evaluate results by comparing objective values under our static rebalancing assumption and through a discrete event-based simulation. 
 Details of each component are provided in the following sections.
 
 \subsection{Bike Sharing Dataset}
@@ -189,7 +190,7 @@ Let $\mathcal{S}$ be the set of stations and $C_i, I_i, \hat{d}_i$ be the capaci
 Then, our original MIP is:
 \begin{align}
 \min \quad & \sum_{i \in \mathcal{S}} (c_l l_i + c_o o_i) \label{eq:orig_objective} \\
-\text{s.t.} \quad & I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} + l_i \geq \hat{d}i && \forall i \in \mathcal{S}\label{eq:orig_lost-demand} \\
+\text{s.t.} \quad & I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} + l_i \geq \hat{d}_i && \forall i \in \mathcal{S}\label{eq:orig_lost-demand} \\
 & I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} - \hat{d}_i - o_i \leq C_i && \forall i \in \mathcal{S} \label{eq:orig_over_cap} \\
 & I_i + \sum_{j \in \mathcal{S}} x_{ji} - \sum_{j \in \mathcal{S}} x_{ij} \leq C_i && \forall i \in \mathcal{S} \label{eq:orig_start_cap} \\
 & \sum_{j \in \mathcal{S}} x_{ij} \leq I_i && \forall i \in \mathcal{S} \label{eq:orig_start_inv} \\
@@ -216,7 +217,7 @@ as an integer program (IP):
 & \sum_{i \in \mathcal{S}} \sum\limits_{j=0}^{C_i} ~j~y_{ij}  = \mathcal{I} \label{eq:new_total_inv} \\
 & x_{ij} \in \{0, 1\} \quad \forall i \in \mathcal{S}, \forall j \in \{0, 1, ..., C_i\} \nonumber
 \end{align}
-where  $\mathcal{I} =$total inventory $= \sum_{i \in \mathcal{S}} I_i$. Notably, this reformulation expands the number of variables from $| \mathcal{S} |$ to $|\mathcal{S}| (\max{C_i} + 1)$. However, in the case of our Pittsburgh bike sharing systems, this expansion is still a manageable few thousands variables.
+where  $\mathcal{I} = \text{ total inventory } = \sum_{i \in \mathcal{S}} I_i$. Notably, this reformulation expands the number of variables from $| \mathcal{S} |$ to $|\mathcal{S}| (\max{C_i} + 1)$. However, in the case of our Pittsburgh bike sharing systems, this expansion is still a manageable few thousands variables.
 
 Importantly, this reformulation has several, nice properties. First, the computation of the cost inputs in \cref{eq:cost_head} can be done with ReLUs, maintaining the differentiability of the predictive model. Secondly, the feasible region of this reformulation is constant and only depends on the total inventory in the system and 
 the capacities of the stations. Finally, the objective is now a linear function of our predicted costs, enabling the use of SPO+ loss function. Using this reformulation, our end-to-end approach is visualized in \cref{fig:end_to_end_dfl}.
@@ -285,7 +286,8 @@ with Gurobi. To facilitate end-to-end training, we rely heavily on PyEPO \cite{t
 \url{https://github.com/saloper/decision-focused-bike-rebalancing}.
 
 \subsection{Experiments}
-For each of our bike sharing datasets, we conducted the following experiments:
+\subsubsection{Models}
+For each of our bike sharing datasets we compared: 
 \begin{enumerate}
     \item \textbf{Naive Capacity:} Bikes are rebalanced proportional to each station's capacity. In the case of fractional bikes, rounding is randomized between stations.
     \item \textbf{Optimal:} Bikes are rebalanced using the approach in \cref{fig:end_to_end_dfl}, but ground truth demand predictions are used. This provides an upper bound on the performance of our static rebalancing approach.
@@ -293,9 +295,9 @@ For each of our bike sharing datasets, we conducted the following experiments:
     \item \textbf{Linear SPO+ Loss:} The full implementation of \cref{fig:end_to_end_dfl}, where demand predictions are trained end-to-end using SPO+.
 \end{enumerate}
 
-For simplicity, all experiments were completed with $c_l = 1$ and $c_o = 1$ after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
-
-Notably, these experiments were initially completed using data from all hours of the day. However, many bike sharing systems face morning rushes followed by evening commutes. In our aggregation of net demand, these may cancel each other out. 
+For simplicity, all models were solved with $c_l = 1$ and $c_o = 1$ after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
+\subsubsection{Time Horizons}
+Since, many bike sharing systems experience morning rushes followed by evening commutes, our daily aggregation of net demand may be inaccurate. 
 So, we also completed these experiments focused on solving the morning rush with data only from midnight to noon. This variant will be referred to as the 12hr. 
 
 \section{Results}
@@ -314,7 +316,7 @@ First, we observe that the DFL approach fails to improve performance when compar
 Second, the large gap between costs estimated in optimization and costs realized in simulation suggests static rebalancing is too strong an assumption, especially for the POGOH dataset. As expected, this gap closes when only estimating morning demand in the 12 hour experiments. 
 
 Finally, the relatively large MSE values, especially in the POGOH dataset, indicate that the predictive models struggle to accurately model demand. In fact, the simple heuristic of spreading the system's inventory proportionally to each station's capacity outperforms all methods, even 
-when measured within optimization. Note, the fact that the naive approach also outperforms the optimal in simulation is an additional suggestion that the static rebalancing assumption is too strong.
+when measured within optimization. Note, the fact that the naive approach also outperforms the optimal in simulation is additional evidence that the static rebalancing assumption is too strong.
 
 \begin{table}[ht]
   \centering
@@ -332,13 +334,13 @@ when measured within optimization. Note, the fact that the naive approach also o
     \midrule
     \multirow{4}{*}{POGOH} 
     & Optimal             & 0.00           & 0.77           & 3.63           & 2.81           & 163.91 \\
-    & Naïve 50\% Capacity & -              & 8.21           & -              & 16.04          & 141.04 \\
+    & Naïve Capacity      & -              & 8.21           & -              & 16.04          & 141.04 \\
     & Linear (MSE Loss)   & \textbf{12.19} & 23.13          & \textbf{18.11} & 36.60          & 197.26 \\
     & Linear (SPO+ Loss)  & 18.84          & \textbf{23.10} & 23.92          & \textbf{34.54} & \textbf{188.35} \\
     \midrule
     \multirow{4}{*}{Healthy Ride} 
     & Optimal             & 0.00           & 0.13           & 0.00           & 1.49           & 45.29 \\
-    & Naïve 50\% Capacity & -              & 2.91           & -              & 7.40           & 19.40 \\
+    & Naïve Capacity      & -              & 2.91           & -              & 7.40           & 19.40 \\
     & Linear (MSE Loss)   & \textbf{2.60}  & \textbf{19.23} & \textbf{3.60}  & \textbf{27.01} & \textbf{66.48} \\
     & Linear (SPO+ Loss)  & 3.51           & 26.64          & 4.52           & 35.12          & 81.12 \\
     \midrule
@@ -346,13 +348,13 @@ when measured within optimization. Note, the fact that the naive approach also o
     \midrule
     \multirow{4}{*}{POGOH} 
     & Optimal             & 0.00           & 5.36           & 0.00           & 14.80          & 47.52 \\
-    & Naïve 50\% Capacity & -              & 32.27          & -              & 46.38          & 63.46 \\
+    & Naïve Capacity      & -              & 32.27          & -              & 46.38          & 63.46 \\
     & Linear (MSE Loss)   & \textbf{11.57} & \textbf{20.83} & \textbf{21.87} & \textbf{38.30} & \textbf{62.94} \\
     & Linear (SPO+ Loss)  & 13.36          & 22.27          & 23.50          & 39.58          & 64.77 \\
     \midrule
     \multirow{4}{*}{Healthy Ride} 
     & Optimal             & 0.00           & 0.02           & 0.00           & 0.41           & 10.25 \\
-    & Naïve 50\% Capacity & -              & 0.67           & -              & 2.66           & 3.22  \\
+    & Naïve Capacity      & -              & 0.67           & -              & 2.66           & 3.22  \\
     & Linear (MSE Loss)   & \textbf{0.98}  & \textbf{7.36}  & \textbf{1.43}  & \textbf{10.93} & \textbf{18.06} \\
     & Linear (SPO+ Loss)  & 1.91           & 12.06          & 2.32           & 16.15          & 25.76 \\
     \bottomrule
@@ -361,12 +363,56 @@ when measured within optimization. Note, the fact that the naive approach also o
 
 \section{Discussion}
 
+\subsection{Predictive Performance}
+It is surprising that even with relevant features, the MSE trained model is unable to achieve good predictive performance. However, analyzing the data revealed two potential causes. A representative station's predictions and ground truth demand are shown in \cref{fig:pred_ex}.
+\begin{figure}[h]
+    \centering
+    \begin{subfigure}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pred_example_24hr.pdf}
+        \caption{Demand over 24 hours cancels out making predictions uninformative.}
+        \label{fig:pred_ex_24}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pred_example_12hr.pdf}
+        \caption{Demand over 12 hours is less symmetric but retains high variance.}
+        \label{fig:pred_ex_12}
+    \end{subfigure}
+    \caption{POGOH Station 10 actual and predicted demand at 24 and 12 hours of aggregation.}
+    \label{fig:pred_ex}
+\end{figure}
+
+The first challenge, shown in the \cref{fig:pred_ex_24}, is that aggregating to 24 hours results in ground truth demand that is almost pure noise. This is because intraday trips cancel themselves out, resulting in a net demand that is practically mean zero. The challenge, then, is the resulting demand predictions are 
+all close to zero, which, when fed to the optimization model, results in many solutions that achieve zero predicted cost. Since the solver picks arbitrarily between these solutions, the resulting targets are almost equivalent to assigning inventory at random.  
+
+Secondly, as shown in \cref{fig:pred_ex_12}, aggregating demand to 12 hours does provide a clearer signal, but there is still significant variance that is difficult to predict with the current features. This results in many predictions that are significantly wrong which directly cause the optimization model to confidently balance inventory to poor targets.
+
+
+\subsection{Decision Loss Convergence}
+It is also surprising that the decision loss model is unable to improve upon the performance of the MSE model. In general, decision loss has shown good results in contexts where predictive models are underpowered by "freeing up" models to converge to broad decision boundaries instead of precise predictions. However, 
+this effect is not observed in our experiments.   
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\linewidth]{images/true_demand_boxplots.pdf}
+  \caption{POGOH 24 and 12 hour box plots of demand.}
+  \label{fig:true_demand_box}
+\end{figure}
+
+As shown in \cref{fig:true_demand_box}, one potential cause that is present in both the POGOH and Healthy Ride datasets is the lack of clear sink and source nodes. This is especially truly when aggregating to 24 hours, where the stations' demands are remarkably similar and centered around zero. When aggregating to 12 hours, 
+a few sink and source nodes begin to appear. For example, station 12 experiences large morning in-flows while station 20 experiences large morning outflows. However, even in this case, the vast majority of stations still have relatively balanced demand. The result, then, is SPO+ loss is unable to converge to broad target strategies in the majority of stations. In the stations with
+clear sink or source behavior, MSE already captures this by predicting close to the average demand \cref{fig:pred_ex_12}. This effect does not allow SPO+ to improve performance vs. MSE.
+
 \section{Future Work}
+While our results show no performance improvements with decision loss, some changes to our approach may help.  
 \begin{itemize}
-    \item Datasets
-    \item Scalability
-    \item Robustness
+    \item \textbf{Hybrid Objective:} When demand predictions are small, the optimization model has little information to break ties amongst all the zero cost solutions. So, a small penalty for non-uniformity of inventory targets could be added. The hypothesis is that when demand predictions are low, this penalty would allow the optimization model to prefer solutions that result in zero cost with the most even spreading of inventory. 
+    \item \textbf{Adding Features:} With the current set of features, baseline prediction performance is poor which makes comparing approaches difficult. Adding features for professional sporting events and school calendars may help, since significant demand in Pittsburgh originates from events and students. Additionally, previous days of demand are correlated, so adding lagged features to make the model autoregressive may also provide some prediction improvements.  
+    \item \textbf{Scalability:} The experiments completed are the most simplified version of bike rebalancing: static and targets only. This was because of the significant computation required for implementing DFL approaches. To extend the approach to more practical dynamic and routing models, significant work must be done to improve scalability. One potential idea would be to relax the optimization model to a linear program (LP) for training before solving as a MIP at test time.
 \end{itemize}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%References%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -442,7 +488,13 @@ when measured within optimization. Note, the fact that the naive approach also o
 \end{algorithmic}
 \end{algorithm}
 
-
+\section{Healthy Ride Demand Patterns}
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\linewidth]{images/true_demand_boxplots_hr.pdf}
+  \caption{Healthy Ride 24 and 12 hour box plots of demand.}
+  \label{fig:true_demand_box_hr}
+\end{figure}
 
 \end{document}
 

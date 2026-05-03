@@ -34,7 +34,7 @@ def main():
 
     #Get timestamp and create directory to hold data for run
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = get_path(f"experiments\\targets\\healthy_ride\\{config["experiment_name"]}\\{timestamp}")
+    run_dir = get_path(f"experiments\\targets\\pogoh\\{config["experiment_name"]}\\{timestamp}")
     run_dir.mkdir(parents=True, exist_ok=True)
 
     #Make a copy of the configuration used
