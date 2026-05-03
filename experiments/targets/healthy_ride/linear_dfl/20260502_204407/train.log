@@ -1,9 +1,0 @@
-2026-05-02 20:44:07,438 - INFO - Starting Experiment: linear_dfl
-2026-05-02 20:44:07,438 - INFO - Run directory created at: C:\Users\Loper Laptop\Desktop\10-620 Independent Study\Code\experiments\targets\healthy_ride\linear_dfl\20260502_204407
-2026-05-02 20:44:07,627 - INFO - Set parameter Username
-2026-05-02 20:44:07,627 - INFO - Set parameter LicenseID to value 2774727
-2026-05-02 20:44:07,629 - INFO - Academic license - for non-commercial use only - expires 2027-02-03
-2026-05-02 20:45:37,033 - INFO - Epoch 1 Train Loss: 104.4972 Test Loss: 102.7874
-2026-05-02 20:46:05,347 - INFO - Epoch 2 Train Loss: 92.9618 Test Loss: 97.9820
-2026-05-02 20:46:41,314 - INFO - Epoch 3 Train Loss: 88.2648 Test Loss: 96.2142
-2026-05-02 20:47:15,328 - INFO - Epoch 4 Train Loss: 86.1780 Test Loss: 95.7890

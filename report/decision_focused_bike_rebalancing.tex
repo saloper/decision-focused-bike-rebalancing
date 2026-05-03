@@ -267,7 +267,7 @@ the capacities of the stations. Finally, the objective is now a linear function 
 \end{figure}
 
 \subsubsection{SPO+ Routing Formulation}
-We did attempt to extend the SPO+ friendly formulation to include vehicle routing. Specifically, the objective remained the same, but the chosen targets were constrained by a total routing time of 240 minutes utilizing the Miles-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computational intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
+We did attempt to extend the SPO+ friendly formulation to include vehicle routing. Specifically, the objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miles-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computational intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
 the joint targets and routing model. A potential middle-ground may be approximating routing costs as a network flow problem. Regardless, the scope of this work is limited to the targets formulation.
 
 \subsection{Simulation}
@@ -287,7 +287,6 @@ with Gurobi. To facilitate end-to-end training, we rely heavily on PyEPO \cite{t
 \subsection{Experiments}
 For each of our bike sharing datasets, we conducted the following experiments:
 \begin{enumerate}
-    \item \textbf{Do Nothing:} As the name suggests, no rebalancing is done. This provides a lower bound for any acceptable rebalancing performance. 
     \item \textbf{Naive Capacity:} Bikes are rebalanced proportional to each station's capacity. In the case of fractional bikes, rounding is randomized between stations.
     \item \textbf{Optimal:} Bikes are rebalanced using the approach in \cref{fig:end_to_end_dfl}, but ground truth demand predictions are used. This provides an upper bound on the performance of our static rebalancing approach.
     \item \textbf{Linear MSE Loss:} Demand predictions are trained independently using MSE before executing the approach in \cref{fig:end_to_end_dfl}.
@@ -300,6 +299,22 @@ Notably, these experiments were initially completed using data from all hours of
 So, we also completed these experiments focused on solving the morning rush with data only from midnight to noon. This variant will be referred to as the 12hr. 
 
 \section{Results}
+\subsection{Metrics}
+In all of our experiments we rely on two, key metrics.
+\begin{itemize}
+    \item \textbf{Mean Squared Error (MSE):} The mean squared error between the predicted station demands and the true station demands. The captures the upstream accuracy and is the training criterion in the traditional PTO approach.
+    \item \textbf{Cost:} The total cost of lost demand and over capacity events after executing rebalancing. This is calculated both in the objective function of the optimization model (assuming static rebalancing) and by tracking metrics when executing the simulation.
+\end{itemize}
+
+\subsection{Performance of Decision Loss for Bike Rebalancing}
+The experimental results for both datasets and time-horizons are detailed in \cref{tab:optimization_results}.
+
+First, we observe that the DFL approach fails to improve performance when compared to standard MSE. In fact, MSE outperforms SPO+ in three of the four configurations, with the minimal degradation only on the 24 hour POGOH dataset. 
+
+Second, the large gap between costs estimated in optimization and costs realized in simulation suggests static rebalancing is too strong an assumption, especially for the POGOH dataset. As expected, this gap closes when only estimating morning demand in the 12 hour experiments. 
+
+Finally, the relatively large MSE values, especially in the POGOH dataset, indicate that the predictive models struggle to accurately model demand. In fact, the simple heuristic of spreading the system's inventory proportionally to each station's capacity outperforms all methods, even 
+when measured within optimization. Note, the fact that the naive approach also outperforms the optimal in simulation is an additional suggestion that the static rebalancing assumption is too strong.
 
 \begin{table}[ht]
   \centering
@@ -318,31 +333,32 @@ So, we also completed these experiments focused on solving the morning rush with
     \multirow{4}{*}{POGOH} 
     & Optimal             & 0.00           & 0.77           & 3.63           & 2.81           & 163.91 \\
     & Naïve 50\% Capacity & -              & 8.21           & -              & 16.04          & 141.04 \\
-    & Linear (MSE Loss)   & \textbf{0.97}  & 23.13          & \textbf{2.69}  & 36.60          & 197.26 \\
-    & Linear (SPO+ Loss)  & 1.90           & \textbf{23.10} & 3.63           & \textbf{34.54} & \textbf{188.35} \\
+    & Linear (MSE Loss)   & \textbf{12.19} & 23.13          & \textbf{18.11} & 36.60          & 197.26 \\
+    & Linear (SPO+ Loss)  & 18.84          & \textbf{23.10} & 23.92          & \textbf{34.54} & \textbf{188.35} \\
     \midrule
     \multirow{4}{*}{Healthy Ride} 
     & Optimal             & 0.00           & 0.13           & 0.00           & 1.49           & 45.29 \\
     & Naïve 50\% Capacity & -              & 2.91           & -              & 7.40           & 19.40 \\
     & Linear (MSE Loss)   & \textbf{2.60}  & \textbf{19.23} & \textbf{3.60}  & \textbf{27.01} & \textbf{66.48} \\
-    & Linear (SPO+ Loss)  & 1.82           & 26.64          & 2.32           & 35.12          & 81.12 \\
+    & Linear (SPO+ Loss)  & 3.51           & 26.64          & 4.52           & 35.12          & 81.12 \\
     \midrule
     \multicolumn{7}{c}{\textbf{12 Hour Horizon}} \\
     \midrule
     \multirow{4}{*}{POGOH} 
     & Optimal             & 0.00           & 5.36           & 0.00           & 14.80          & 47.52 \\
     & Naïve 50\% Capacity & -              & 32.27          & -              & 46.38          & 63.46 \\
-    & Linear (MSE Loss)   & \textbf{0.86}  & \textbf{20.83} & \textbf{1.45}  & \textbf{38.30} & \textbf{62.94} \\
-    & Linear (SPO+ Loss)  & 1.39           & 22.27          & 2.09           & 39.58          & 64.77 \\
+    & Linear (MSE Loss)   & \textbf{11.57} & \textbf{20.83} & \textbf{21.87} & \textbf{38.30} & \textbf{62.94} \\
+    & Linear (SPO+ Loss)  & 13.36          & 22.27          & 23.50          & 39.58          & 64.77 \\
     \midrule
     \multirow{4}{*}{Healthy Ride} 
     & Optimal             & 0.00           & 0.02           & 0.00           & 0.41           & 10.25 \\
     & Naïve 50\% Capacity & -              & 0.67           & -              & 2.66           & 3.22  \\
     & Linear (MSE Loss)   & \textbf{0.98}  & \textbf{7.36}  & \textbf{1.43}  & \textbf{10.93} & \textbf{18.06} \\
-    & Linear (SPO+ Loss)  & 2.69           & 12.06          & 3.20           & 16.15          & 25.76 \\
+    & Linear (SPO+ Loss)  & 1.91           & 12.06          & 2.32           & 16.15          & 25.76 \\
     \bottomrule
   \end{tabular}
 \end{table}
+
 \section{Discussion}
 
 \section{Future Work}
