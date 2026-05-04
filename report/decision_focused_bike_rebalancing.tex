@@ -59,7 +59,8 @@
 \usepackage{microtype}      % microtypography
 \usepackage{xcolor}         % colors
 \usepackage{graphicx}       % graphics
-\usepackage{subcaption}     % sub-figures    
+\usepackage{subcaption}     % sub-figures 
+\usepackage{placeins}       % control of float positions   
 \usepackage{tikz}           % nice figures
 \usetikzlibrary{arrows.meta}
 
@@ -101,10 +102,10 @@
 
 \section{Introduction}
 
-In the last five years, the U.S. has continued to invest in docked bike sharing systems, growing total docks by 40\% to a total of $\approx10,000$ \cite{bts2026bikeshare}. As these systems continue to mature, efficient
+In the last five years, the U.S. has continued to invest in docked bike sharing systems, growing total docks by 40\% to a total of almost 10,000 \cite{bts2026bikeshare}. As these systems continue to scale, efficient
 operations remains a critical challenge.
 
-In docked bike sharing systems, stations with specific parking spots, or docks, are created for users to rent and return bikes. Importantly, each station has fixed capacity and must balance both the availability of bikes 
+In docked bike sharing systems, stations with specific parking spots, or docks, are installed for users to rent and return bikes. Importantly, each station has fixed capacity and must balance both the availability of bikes 
 for outgoing rentals and the availability of docks for incoming returns. As such, operators consistently engage in rebalancing, where bikes are strategically moved between stations. Nonetheless, determining exactly how a system should be rebalanced
 is difficult and a rich area of research.
 
@@ -115,16 +116,16 @@ have started leveraging advances in machine learning for better predictive model
 However, recent work \cite{amos2017optnet, elmachtoub2022spo} has enabled predictive models to be trained in-the-loop with downstream optimization tasks. This new approach, Decision-Focused-Learning (DFL), has shown
 promising results by better aligning machine learning models with downstream utility instead of upstream accuracy \cite{donti2017task}. 
 
-In this work, we explore the performance of the DFL approach in the context of bike rebalancing. Specifically, we solve for stations' target inventories by predicting net demand at each station and solving a mixed integer program (MIP).
-Importantly, we make use of the SPO+ surrogate loss to allow our predictive model to be trained end-to-end. We explore our approach's performance on historical bike sharing
-data from Pittsburgh (POGOH and Healthy Ride). These datasets are particularly interesting, since Pittsburgh's distinct seasonality and topology create meaningful asymmetries in demand patterns.
+In this work, we explore the performance of the DFL approach in the context of bike rebalancing. Specifically, we solve for stations' target inventories by predicting the net demand at each station and solving a mixed integer program (MIP).
+We make use of the SPO+ surrogate loss to allow our predictive model to be trained end-to-end. We explore our approach's performance on historical bike sharing
+data from Pittsburgh (POGOH and Healthy Ride). These datasets are particularly interesting, since Pittsburgh's distinct seasonality and topology create meaningful asymmetries in demand patterns \cite{kim2020pgh}.
 
 In short, our work finds that decision loss is outperformed by traditional mean squared error (MSE) in three of four experiments and is unable to achieve meaningful improvements in bike rebalancing. 
 
 \section{Related Work}
 
 \paragraph{Rebalancing in Bike Sharing Systems.}
-Bike rebalancing has been widely studied and broadly consists of solving two problems: stations' target inventories and the subsequent vehicle routing when executing rebalancing. These problems are often modeled as 
+Bike rebalancing has been widely studied and generally consists of solving two problems: stations' target inventories and the subsequent vehicle routing when executing rebalancing. These problems are often modeled as 
 MIPs \cite{ejor2024rebalancing} and can broadly be classified by when the rebalancing is occurring: static (overnight) or dynamic (intra-day). Given the reduced complexity from assuming overnight rebalancing, many papers focus on the static setting and, until recently,
 solved the two problems independently. However, recent work by \citet{schuijbroek2017irvr} has demonstrated the value of solving for inventory targets and routes jointly. Nonetheless, these methods typically implement the PTO approach and treat 
 demand forecasts as an independent input to optimization problems. This two-staged approach allows for a potential disconnect between prediction accuracy and actual task performance.
@@ -136,24 +137,25 @@ coefficients in a linear objective function. Another popular approach was first 
 has demonstrated techniques for application in combinatorial settings \cite{wilder2019melding}.  
 
 \paragraph{Learning-Based Bike Rebalancing.}
-Recent work has started exploring applications of machine learning in bike rebalancing. Most naturally are efforts to improve demand forecasting through more sophisticated modeling \cite{hulot2018forecasting}. However, many have also started exploring reinforcement learning (RL) for solving 
+Recent work has started exploring applications of machine learning in bike rebalancing. Most natural are efforts to improve demand forecasting through more sophisticated modeling \cite{hulot2018forecasting}. However, many have also started exploring reinforcement learning (RL) for solving 
 bike rebalancing \cite{liang2025rl}. While these RL based approaches have shown promising results, they require the development of simulation environments and extensive computation to facilitate learning. Although DFL remains largely unexplored for bike rebalancing, it may offer a good balance of 
 leveraging the known structure of the problem (through the optimization model) while still allowing task aware learning.
 
 \section{Methods}
 In this work, we implement the simplest bike rebalancing approach, static overnight rebalancing. Specifically, we assume that demand overnight is negligible and that our rebalancing process runs at midnight. Our process starts by predicting the net demand (outflow - inflow) at each station. Then, these net demands are passed to 
-a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. As a baseline this approach is implemented by training the predictive model independently with MSE. Then, a decision focused version is implemented using the SPO+ loss. We evaluate results by comparing objective values under our static rebalancing assumption and through a discrete event-based simulation. 
+a MIP to solve for targets that balance the expected lost demand and over capacity events. To make demand predictions, we rely on cyclical embeddings of time and historical day-ahead weather forecasts. As a baseline, this approach is implemented by training the predictive model independently with MSE. Then, a decision focused version is implemented using the SPO+ loss. We evaluate results by comparing metrics under our static rebalancing assumption and a seperate discrete event-based simulation. 
 Details of each component are provided in the following sections.
 
 \subsection{Bike Sharing Dataset}
 We utilize historical bike sharing data from the city of Pittsburgh. As shown in \cref{fig:total_rides}, Pittsburgh's bike sharing stations operated as Healthy Ride before being overhauled and renamed POGOH in early 2022. Due to this drastic change,
-we treat the two datasets as separate and implement independent experiments for both. Pittsburgh's bike sharing data provides a rich testing ground for algorithmic improvements, as the diversity in elevation and weather results in highly asymmetric demand patterns \cite{kim2020pgh}.
+we treat the two datasets as separate and implement independent experiments for both.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.6\linewidth]{images/total_rides.pdf}
   \caption{Daily total trips, showing Pittsburgh's strong seasonality and change from POGOH infrastructure improvements.}
   \label{fig:total_rides}
 \end{figure}
+
 Notably, in late 2018, Healthy Ride more than doubled its stations from 50 to 105. Similarly, in July 2023, POGOH increased its station count from 42 to 60. Since these changes had significant impacts on the intra-station demand dynamics, we ignore all data present before these periods. Additionally, given 
 the strong seasonality, we utilize an entire year for our test sets. So, for the Healthy Ride data we train with 2019-2020 and test on 2021. For POGOH, we train with August 2023-2024 and test on 2025.
 
@@ -163,17 +165,18 @@ In order to predict demand, we utilize a linear model $f: \mathbb{R}^7 \to \math
 
 \begin{table}[ht]
 \centering
+\small
 \caption{Summary of features utilized in the predictive model for station-level demand forecasting.}
 \label{tab:features}
 \begin{tabular}{lllc}
 \toprule
 \textbf{Category} & \textbf{Feature Name} & \textbf{Description} & \textbf{Format} \\
 \midrule
-\textbf{Temporal}
+Temporal
 & Day of Week   & Integer for the day of week (1,...,7)    & Cyclical encoding\\
 & Month of Year & Integer for the month of year (1,...,12) & Cyclical encoding \\
 \midrule
-\textbf{Weather} 
+Weather 
 & Temperature   & Average feels like temperature (C)  & Z-score \\
 & Precipitation & Total of all precipitation (mm)     & Log transform \\
 & Wind          & Average wind gust at 10m (km/h)     & Z-score \\
@@ -182,8 +185,8 @@ In order to predict demand, we utilize a linear model $f: \mathbb{R}^7 \to \math
 \end{table}
 
 \subsection{Inventory Target Optimization Model}
-At the core of most bike rebalancing approaches is an optimization model. In our case, we utilize a MIP to minimize the costs of the predicted ending inventory positions subject to current capacity and inventory constraints. Our original formulation is not amenable to DFL, so we reformulate the problem in way that allows 
-the use of the SPO+ surrogate loss function. Details are provided in the following sections.
+At the core of most bike rebalancing approaches is an optimization model. In our case, we utilize a MIP to minimize the costs of the predicted ending inventory positions subject to current capacity and inventory constraints. Our original formulation is not amenable to DFL, so we reformulate the problem in a way that allows 
+the use of the SPO+ surrogate loss function.
 
 \subsubsection{Original Formulation}
 Let $\mathcal{S}$ be the set of stations and $C_i, I_i, \hat{d}_i$ be the capacity, current inventory, and estimated net demand for station $i$, respectively. Additionally, let $c_l$ be the cost of lost demand and $c_o$ the cost of over capacity and $x_{ij}$ designate the amount of bikes to move from station $i$ to $j$. 
@@ -201,7 +204,7 @@ In this formulation, we use slack variables $l_i$ and $o_i$ to track the amount 
 \cref{eq:orig_over_cap} calculates the over capacity, \cref{eq:orig_start_cap} ensures a station is not rebalanced to more than its capacity, and \cref{eq:orig_start_inv} ensures a station does not send out more bikes than its current inventory. Notably, our focus is purely on the target inventories, so no cost is added for transporting bikes. 
 
 Unfortunately, this formulation does not allow for straightforward DFL implementation. Since the decision variables are integers, applying differentiable optimization techniques \cite{amos2017optnet} is not possible. Moreover, because the predictions appear in the constraints and not in the objective, using the SPO+ loss function is also not possible \cite{elmachtoub2022spo}. 
-Curiously, this formulation also has a feasible region that changes based on predictions and current inventories. However, the set of targets we can choose is always fixed between $0$ and a station's capacity. We make use of this fact and re-formulate the target optimization model as described in the following section.
+Curiously, this formulation has a feasible region that changes based on predictions and current inventories. However, the set of targets we can choose is always fixed between $0$ and a station's capacity. We make use of this fact and re-formulate the target optimization model as described in the following section.
 
 \subsubsection{SPO+ Friendly Formulation}
 In the original formulation, \cref{eq:orig_lost-demand} and \cref{eq:orig_over_cap} make applying DFL techniques difficult. However, these constraints only exist to calculate the expected costs from selecting a starting inventory level for a station. Since the feasible starting inventory levels for a station are always between $0$ and its capacity, these costs can be 
@@ -209,7 +212,7 @@ pre-computed by enumerating all possible inventory levels. Specifically, let $c_
 \begin{equation}
   c_{ij} = c_l \max(0, \hat{d}_i - j ) + c_o \max(0, j - \hat{d}_i - C_i) \quad \forall j \in \{0, 1, ..., C_i\} \label{eq:cost_head}
 \end{equation} 
-This operation, which we refer to as a cost head, can simply be repeated for each station to build a matrix of costs. Note, in practice all stations do not have the same capacity, so infeasible targets require masking to store in a matrix. After computing these costs, we let $y_{ij}$ denote a binary decision variable for setting station $i$ to level $j$. Then, the target optimization can be re-written 
+This operation, which we refer to as a cost head, can simply be repeated for each station to build a matrix of costs. Note, in practice all stations do not have the same capacity, so infeasible targets require masking to store in a matrix. After computing these costs, let $y_{ij}$ denote a binary decision variable for setting station $i$ to level $j$. Then, the target optimization can be re-written 
 as an integer program (IP):
 \begin{align}
 \min \quad & \sum_{i \in \mathcal{S}} \sum\limits_{j=0}^{C_i} (c_{ij} y_{ij}) \label{eq:new_objective} \\
@@ -268,7 +271,7 @@ the capacities of the stations. Finally, the objective is now a linear function 
 \end{figure}
 
 \subsubsection{SPO+ Routing Formulation}
-We did attempt to extend the SPO+ friendly formulation to include vehicle routing. Specifically, the objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miles-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computational intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
+We did attempt to extend the SPO+ friendly formulation to include vehicle routing.The objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miller-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computationally intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
 the joint targets and routing model. A potential middle-ground may be approximating routing costs as a network flow problem. Regardless, the scope of this work is limited to the targets formulation.
 
 \subsection{Simulation}
@@ -295,17 +298,17 @@ For each of our bike sharing datasets we compared:
     \item \textbf{Linear SPO+ Loss:} The full implementation of \cref{fig:end_to_end_dfl}, where demand predictions are trained end-to-end using SPO+.
 \end{enumerate}
 
-For simplicity, all models were solved with $c_l = 1$ and $c_o = 1$ after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
+For simplicity, all models were solved with $c_l = 1$ and $c_o = 1$, after some analysis revealed no meaningful change in behavior when these costs are treated unequally. 
 \subsubsection{Time Horizons}
-Since, many bike sharing systems experience morning rushes followed by evening commutes, our daily aggregation of net demand may be inaccurate. 
+Since many bike sharing systems experience morning rushes followed by evening commutes, our daily aggregation of net demand may be inaccurate. 
 So, we also completed these experiments focused on solving the morning rush with data only from midnight to noon. This variant will be referred to as the 12hr. 
 
 \section{Results}
 \subsection{Metrics}
 In all of our experiments we rely on two, key metrics.
 \begin{itemize}
-    \item \textbf{Mean Squared Error (MSE):} The mean squared error between the predicted station demands and the true station demands. The captures the upstream accuracy and is the training criterion in the traditional PTO approach.
-    \item \textbf{Cost:} The total cost of lost demand and over capacity events after executing rebalancing. This is calculated both in the objective function of the optimization model (assuming static rebalancing) and by tracking metrics when executing the simulation.
+    \item \textbf{Mean Squared Error (MSE):} The mean squared error between the predicted station demands and the true station demands. This captures the upstream accuracy and is the training criterion in the traditional PTO approach.
+    \item \textbf{Cost:} The total cost of lost demand and over capacity events after executing rebalancing. This is calculated both in the objective function of the optimization model (assuming static rebalancing) and by tracking metrics when running the simulation.
 \end{itemize}
 
 \subsection{Performance of Decision Loss for Bike Rebalancing}
@@ -320,6 +323,7 @@ when measured within optimization. Note, the fact that the naive approach also o
 
 \begin{table}[ht]
   \centering
+  \small
   \caption{DFL fails to make significant improvements across 12-hour and 24-hour horizons and datasets.}
   \label{tab:optimization_results}
   \begin{tabular}{llrrrrr}
@@ -360,11 +364,11 @@ when measured within optimization. Note, the fact that the naive approach also o
     \bottomrule
   \end{tabular}
 \end{table}
-
+\FloatBarrier
 \section{Discussion}
 
-\subsection{Predictive Performance}
-It is surprising that even with relevant features, the MSE trained model is unable to achieve good predictive performance. However, analyzing the data revealed two potential causes. A representative station's predictions and ground truth demand are shown in \cref{fig:pred_ex}.
+\subsection{MSE Performance}
+It is surprising that even with relevant features, the MSE trained models are unable to achieve good predictive performance. However, analyzing the data revealed two potential causes. A representative station's predictions and ground truth demand are shown in \cref{fig:pred_ex}.
 \begin{figure}[h]
     \centering
     \begin{subfigure}{0.49\linewidth}
@@ -390,8 +394,8 @@ all close to zero, which, when fed to the optimization model, results in many so
 Secondly, as shown in \cref{fig:pred_ex_12}, aggregating demand to 12 hours does provide a clearer signal, but there is still significant variance that is difficult to predict with the current features. This results in many predictions that are significantly wrong which directly cause the optimization model to confidently balance inventory to poor targets.
 
 
-\subsection{Decision Loss Convergence}
-It is also surprising that the decision loss model is unable to improve upon the performance of the MSE model. In general, decision loss has shown good results in contexts where predictive models are underpowered by "freeing up" models to converge to broad decision boundaries instead of precise predictions. However, 
+\subsection{SPO+ Performance}
+It is also surprising that the SPO+ model is unable to improve upon the performance of the MSE model. In general, decision loss has shown good results in contexts where predictive models are underpowered by "freeing up" models to converge to broad decision boundaries instead of precise predictions. However, 
 this effect is not observed in our experiments.   
 \begin{figure}[ht]
   \centering
@@ -399,15 +403,14 @@ this effect is not observed in our experiments.
   \caption{POGOH 24 and 12 hour box plots of demand.}
   \label{fig:true_demand_box}
 \end{figure}
-
-As shown in \cref{fig:true_demand_box}, one potential cause that is present in both the POGOH and Healthy Ride datasets is the lack of clear sink and source nodes. This is especially truly when aggregating to 24 hours, where the stations' demands are remarkably similar and centered around zero. When aggregating to 12 hours, 
+As shown in \cref{fig:true_demand_box}, one potential cause that is present in both the POGOH and Healthy Ride datasets \cref{fig:true_demand_box_hr} is the lack of clear sink and source nodes. This is especially true when aggregating to 24 hours, where the stations' demands are remarkably similar and centered around zero. When aggregating to 12 hours, 
 a few sink and source nodes begin to appear. For example, station 12 experiences large morning in-flows while station 20 experiences large morning outflows. However, even in this case, the vast majority of stations still have relatively balanced demand. The result, then, is SPO+ loss is unable to converge to broad target strategies in the majority of stations. In the stations with
 clear sink or source behavior, MSE already captures this by predicting close to the average demand \cref{fig:pred_ex_12}. This effect does not allow SPO+ to improve performance vs. MSE.
 
 \section{Future Work}
 While our results show no performance improvements with decision loss, some changes to our approach may help.  
 \begin{itemize}
-    \item \textbf{Hybrid Objective:} When demand predictions are small, the optimization model has little information to break ties amongst all the zero cost solutions. So, a small penalty for non-uniformity of inventory targets could be added. The hypothesis is that when demand predictions are low, this penalty would allow the optimization model to prefer solutions that result in zero cost with the most even spreading of inventory. 
+    \item \textbf{Hybrid Objective:} When demand predictions are small, the optimization model has little information to break ties amongst all the supposed zero cost solutions. So, a small penalty for non-uniformity of inventory targets could be added. The hypothesis is that when demand predictions are low, this penalty would allow the optimization model to choose the zero cost solution with the most even spreading of inventory. 
     \item \textbf{Adding Features:} With the current set of features, baseline prediction performance is poor which makes comparing approaches difficult. Adding features for professional sporting events and school calendars may help, since significant demand in Pittsburgh originates from events and students. Additionally, previous days of demand are correlated, so adding lagged features to make the model autoregressive may also provide some prediction improvements.  
     \item \textbf{Scalability:} The experiments completed are the most simplified version of bike rebalancing: static and targets only. This was because of the significant computation required for implementing DFL approaches. To extend the approach to more practical dynamic and routing models, significant work must be done to improve scalability. One potential idea would be to relax the optimization model to a linear program (LP) for training before solving as a MIP at test time.
 \end{itemize}
@@ -488,6 +491,7 @@ While our results show no performance improvements with decision loss, some chan
 \end{algorithmic}
 \end{algorithm}
 
+\newpage
 \section{Healthy Ride Demand Patterns}
 \begin{figure}[ht]
   \centering
