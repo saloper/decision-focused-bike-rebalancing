@@ -4,7 +4,7 @@
 % The authors should use one of these tracks.
 % Before accepting by the NeurIPS conference, select one of the options below.
 % 0. "default" for submission
-\usepackage[nonanonymous]{neurips_2026}
+\usepackage[main, final]{neurips_2026}
 % the "default" option is equal to the "main" option, which is used for the Main Track with double-blind reviewing.
 % 1. "main" option is used for the Main Track
 %  \usepackage[main]{neurips_2026}
@@ -201,7 +201,7 @@ Then, our original MIP is:
 \end{align}
 
 In this formulation, we use slack variables $l_i$ and $o_i$ to track the amount of lost demand and over capacity that is expected, given our predicted demand and rebalancing decision. Our objective, \cref{eq:orig_objective}, is simply to minimize these total costs. In the constraints, \cref{eq:orig_lost-demand} calculates the lost demand, 
-\cref{eq:orig_over_cap} calculates the over capacity, \cref{eq:orig_start_cap} ensures a station is not rebalanced to more than its capacity, and \cref{eq:orig_start_inv} ensures a station does not send out more bikes than its current inventory. Notably, our focus is purely on the target inventories, so no cost is added for transporting bikes. 
+\cref{eq:orig_over_cap} calculates the over capacity, \cref{eq:orig_start_cap} ensures a station is not rebalanced to more than its capacity, and \cref{eq:orig_start_inv} ensures a station does not send out more bikes than its current inventory.
 
 Unfortunately, this formulation does not allow for straightforward DFL implementation. Since the decision variables are integers, applying differentiable optimization techniques \cite{amos2017optnet} is not possible. Moreover, because the predictions appear in the constraints and not in the objective, using the SPO+ loss function is also not possible \cite{elmachtoub2022spo}. 
 Curiously, this formulation has a feasible region that changes based on predictions and current inventories. However, the set of targets we can choose is always fixed between $0$ and a station's capacity. We make use of this fact and re-formulate the target optimization model as described in the following section.
@@ -271,8 +271,12 @@ the capacities of the stations. Finally, the objective is now a linear function 
 \end{figure}
 
 \subsubsection{SPO+ Routing Formulation}
-We did attempt to extend the SPO+ friendly formulation to include vehicle routing.The objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miller-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computationally intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
-the joint targets and routing model. A potential middle-ground may be approximating routing costs as a network flow problem. Regardless, the scope of this work is limited to the targets formulation.
+We did attempt to extend the SPO+ friendly formulation to include vehicle routing. The objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miller-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computationally intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
+the joint targets and routing model. 
+
+A potential middle-ground may be approximating routing costs as a network flow problem. In fact, the original formulation can easily be extended by using a distance matrix to add a cost of transportation between stations \cref{eq:orig_objective}. Then, the problem can similarly be transformed into a SPO+ friendly formulation where the objective contains a mix of predicted costs from choosing station targets and known costs from distance matrix. 
+
+To link the flow and targets together, we simply can add a constraint similar to \cref{eq:orig_lost-demand} that the current inventory plus the change from flow equals the chosen target. However, this requires that the feasible region continues to depend on current inventory positions, which violates the static feasible region assumption of the SPO+ loss. It is unknown if SPO+ can still achieve good performance when this assumption is violated. Regardless, the focus of this work is remains on the targets formulation.
 
 \subsection{Simulation}
 In addition to evaluating the DFL approach under static rebalancing assumptions (the objective value of the optimization model), we also implement a discrete event-based simulation. Since the simulation is dynamic, it is more realistic and provides insights into

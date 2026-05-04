@@ -48,24 +48,24 @@
 \newif\if@main\@maintrue
 \DeclareOption{main}{
   \@maintrue
-  \newcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear).}
+  \newcommand{\@trackname}{}
 }
 \newif\if@position\@positionfalse
 \DeclareOption{position}{
   \@positiontrue
-  \newcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear). Position Paper Track.}
+  \newcommand{\@trackname}{}
 }
 \newif\if@eandd\@eanddfalse
 \DeclareOption{eandd}{
   \@eanddtrue
 \if@neuripsfinal\@anonymousfalse\else\if@preprint\@anonymousfalse\else\@anonymoustrue\fi\fi
-  \newcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear). Track on Evaluations and Datasets.} 
+  \newcommand{\@trackname}{} 
 }
 \newif\if@creativeai\@creativeaifalse
 \DeclareOption{creativeai}{
   \@creativeaitrue
   \@anonymousfalse
-  \newcommand{\@trackname}{\@neuripsordinal\ Conference on Neural Information Processing Systems (NeurIPS \@neuripsyear). Creative AI Track.}
+  \newcommand{\@trackname}{}
 }
 
 % For anonymous or non-anonymous
