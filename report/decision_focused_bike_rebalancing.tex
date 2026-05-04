@@ -270,14 +270,6 @@ the capacities of the stations. Finally, the objective is now a linear function 
     \label{fig:end_to_end_dfl}
 \end{figure}
 
-\subsubsection{SPO+ Routing Formulation}
-We did attempt to extend the SPO+ friendly formulation to include vehicle routing. The objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miller-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computationally intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
-the joint targets and routing model. 
-
-A potential middle-ground may be approximating routing costs as a network flow problem. In fact, the original formulation can easily be extended by using a distance matrix to add a cost of transportation between stations \cref{eq:orig_objective}. Then, the problem can similarly be transformed into a SPO+ friendly formulation where the objective contains a mix of predicted costs from choosing station targets and known costs from distance matrix. 
-
-To link the flow and targets together, we simply can add a constraint similar to \cref{eq:orig_lost-demand} that the current inventory plus the change from flow equals the chosen target. However, this requires that the feasible region continues to depend on current inventory positions, which violates the static feasible region assumption of the SPO+ loss. It is unknown if SPO+ can still achieve good performance when this assumption is violated. Regardless, the focus of this work is remains on the targets formulation.
-
 \subsection{Simulation}
 In addition to evaluating the DFL approach under static rebalancing assumptions (the objective value of the optimization model), we also implement a discrete event-based simulation. Since the simulation is dynamic, it is more realistic and provides insights into
 the validity of the static rebalancing assumption. 
@@ -410,6 +402,14 @@ this effect is not observed in our experiments.
 As shown in \cref{fig:true_demand_box}, one potential cause that is present in both the POGOH and Healthy Ride datasets \cref{fig:true_demand_box_hr} is the lack of clear sink and source nodes. This is especially true when aggregating to 24 hours, where the stations' demands are remarkably similar and centered around zero. When aggregating to 12 hours, 
 a few sink and source nodes begin to appear. For example, station 12 experiences large morning in-flows while station 20 experiences large morning outflows. However, even in this case, the vast majority of stations still have relatively balanced demand. The result, then, is SPO+ loss is unable to converge to broad target strategies in the majority of stations. In the stations with
 clear sink or source behavior, MSE already captures this by predicting close to the average demand \cref{fig:pred_ex_12}. This effect does not allow SPO+ to improve performance vs. MSE.
+
+\subsection{Limitations of DFL in Routing Formulations}
+We did attempt to extend the SPO+ friendly formulation to include vehicle routing. The objective remained the same, but the chosen targets were constrained by a total routing time of 4 hours utilizing the Miller-Tucker-Zemlin formulation. While this extension is theoretically possible, we found it computationally intractable. This is especially true in the DFL approach, where every iteration of training requires solving 
+the joint targets and routing model. 
+
+A natural approach to resolve this would be to approximate routing costs as a network flow problem. In fact, the original formulation can easily be extended by using a distance matrix to add a cost of transportation between stations \cref{eq:orig_objective}. Then, the problem can similarly be transformed into a SPO+ friendly formulation where the objective contains a mix of predicted costs from choosing station targets and known costs from a distance matrix. 
+
+To link the flow and targets together, a constraint similar to \cref{eq:orig_lost-demand} can be added so that the current inventory plus the change from flow equals the chosen target. However, this requires that the feasible region continues to depend on current inventory positions, which violates the static feasible region assumption of the SPO+ loss. It is unknown whether SPO+ can maintain performance when this assumption is violated, highlighting a significant hurdle in applying DFL to more practical bike rebalancing formulations.
 
 \section{Future Work}
 While our results show no performance improvements with decision loss, some changes to our approach may help.  
